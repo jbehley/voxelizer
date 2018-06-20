@@ -1,0 +1,283 @@
+#include <stdint.h>
+#include <widget/KittiReader.h>
+#include <QtCore/QDir>
+#include <boost/lexical_cast.hpp>
+#include <boost/tokenizer.hpp>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include "rv/string_utils.h"
+
+void KittiReader::initialize(const QString& directory) {
+  velodyne_filenames_.clear();
+
+  QDir base_dir(directory);
+  QDir velodyne_dir(base_dir.filePath("velodyne"));
+  QStringList entries = velodyne_dir.entryList(QDir::Files, QDir::Name);
+  for (int32_t i = 0; i < entries.size(); ++i) {
+    velodyne_filenames_.push_back(velodyne_dir.filePath(entries.at(i)).toStdString());
+  }
+
+  if (!base_dir.exists("calib.txt"))
+    throw std::runtime_error("Missing calibration file: " + base_dir.filePath("calib.txt").toStdString());
+
+  calib_.initialize(base_dir.filePath("calib.txt").toStdString());
+
+  readPoses(base_dir.filePath("poses.txt").toStdString(), poses_);
+
+  // create label dir, etc.
+  QDir labels_dir(base_dir.filePath("labels"));
+
+  // find corresponding label files.
+  if (!labels_dir.exists()) base_dir.mkdir("labels");
+
+  for (uint32_t i = 0; i < velodyne_filenames_.size(); ++i) {
+    std::ifstream in(velodyne_filenames_[i].c_str());
+    in.seekg(0, std::ios::end);
+    uint32_t num_points = in.tellg() / (4 * sizeof(float));
+    in.close();
+
+    QString filename = QFileInfo(QString::fromStdString(velodyne_filenames_[i])).baseName() + ".label";
+    if (!labels_dir.exists(filename)) {
+      std::ofstream out(labels_dir.filePath(filename).toStdString().c_str());
+
+      std::vector<uint32_t> labels(num_points, 0);
+      out.write(reinterpret_cast<const char*>(labels.data()), num_points * sizeof(uint32_t));
+
+      out.close();
+    }
+
+    label_filenames_.push_back(labels_dir.filePath(filename).toStdString());
+  }
+
+  // assumes that (0,0,0) is always the start.
+  Eigen::Vector2f min = Eigen::Vector2f::Zero();
+  Eigen::Vector2f max = Eigen::Vector2f::Zero();
+
+  for (uint32_t i = 0; i < poses_.size(); ++i) {
+    Eigen::Vector4f t = poses_[i].col(3);
+
+    min.x() = std::min(t.x() - maxDistance_, min.x());
+    min.y() = std::min(t.y() - maxDistance_, min.y());
+    max.x() = std::max(t.x() + maxDistance_, max.x());
+    max.y() = std::max(t.y() + maxDistance_, max.y());
+  }
+
+  //  std::cout << "tileSize = " << tileSize_ << std::endl;
+  //  std::cout << "min = " << min << ", max = " << max << std::endl;
+
+  offset_.x() = std::ceil((std::abs(min.x()) - 0.5 * tileSize_) / tileSize_) * tileSize_ + 0.5 * tileSize_;
+  offset_.y() = std::ceil((std::abs(min.y()) - 0.5 * tileSize_) / tileSize_) * tileSize_ + 0.5 * tileSize_;
+
+  //  std::cout << "offset = " << offset_ << std::endl;
+
+  numTiles_.x() = std::ceil((std::abs(min.x()) - 0.5 * tileSize_) / tileSize_) +
+                  std::ceil((max.x() - 0.5 * tileSize_) / tileSize_) + 1;
+  numTiles_.y() = std::ceil((std::abs(min.y()) - 0.5 * tileSize_) / tileSize_) +
+                  std::ceil((max.y() - 0.5 * tileSize_) / tileSize_) + 1;
+
+  //  std::cout << "numTiles = " << numTiles_ << std::endl;
+
+  tiles_.resize(numTiles_.x() * numTiles_.y());
+
+  Eigen::Vector2f idxRadius(maxDistance_ / tileSize_, maxDistance_ / tileSize_);
+
+  for (uint32_t i = 0; i < uint32_t(numTiles_.x()); ++i) {
+    for (uint32_t j = 0; j < uint32_t(numTiles_.y()); ++j) {
+      auto& tile = tiles_[tileIdxToOffset(i, j)];
+
+      tile.i = i;
+      tile.j = j;
+      tile.x = i * tileSize_ - offset_.x() + 0.5 * tileSize_;
+      tile.y = j * tileSize_ - offset_.y() + 0.5 * tileSize_;
+      tile.size = tileSize_;
+    }
+  }
+
+  Eigen::Vector2f e(0.5 * tileSize_, 0.5 * tileSize_);
+  for (uint32_t i = 0; i < poses_.size(); ++i) {
+    Eigen::Vector2f t = poses_[i].col(3).head(2);
+    Eigen::Vector2f idx((t.x() + offset_.x()) / tileSize_, (t.y() + offset_.y()) / tileSize_);
+
+    //    tiles_[tileIdxToOffset(uint32_t(idx.x()), uint32_t(idx.y()))].indexes.push_back(i);
+    uint32_t u_min = std::max(int32_t(idx.x() - idxRadius.x()), 0);
+    uint32_t u_max = std::min(int32_t(std::ceil(idx.x() + idxRadius.x())), numTiles_.x());
+    uint32_t v_min = std::max(int32_t(idx.y() - idxRadius.y()), 0);
+    uint32_t v_max = std::min(int32_t(std::ceil(idx.y() + idxRadius.y())), numTiles_.y());
+
+    for (uint32_t u = u_min; u < u_max; ++u) {
+      for (uint32_t v = v_min; v < v_max; ++v) {
+        auto& tile = tiles_[tileIdxToOffset(u, v)];
+        Eigen::Vector2f q = t - Eigen::Vector2f(tile.x, tile.y);
+        q[0] = std::abs(q[0]);
+        q[1] = std::abs(q[1]);
+
+        // check for exact overlap (see Behley et al., ICRA, 2015)
+        if (std::min(q[0], q[1]) < e[0] || (q - e).norm() < maxDistance_) {
+          tile.indexes.push_back(i);
+        }
+      }
+    }
+  }
+
+  uint32_t tileCount = 0;
+  for (uint32_t i = 0; i < uint32_t(numTiles_.x()); ++i) {
+    for (uint32_t j = 0; j < uint32_t(numTiles_.y()); ++j) {
+      auto& tile = tiles_[tileIdxToOffset(i, j)];
+
+      std::sort(tile.indexes.begin(), tile.indexes.end());
+      if (tile.indexes.size() > 0) tileCount += 1;
+    }
+  }
+
+  std::cout << "#tiles  = " << tileCount << std::endl;
+}
+
+void KittiReader::retrieve(const Eigen::Vector3f& position, std::vector<uint32_t>& indexes,
+                           std::vector<PointcloudPtr>& points, std::vector<LabelsPtr>& labels,
+                           std::vector<ColorsPtr>& colors) {
+  Eigen::Vector2f idx((position.x() + offset_.x()) / tileSize_, (position.y() + offset_.y()) / tileSize_);
+
+  std::cout << "retrieve: idx = " << idx << std::endl;
+  retrieve(idx.x(), idx.y(), indexes, points, labels, colors);
+}
+
+void KittiReader::retrieve(uint32_t i, uint32_t j, std::vector<uint32_t>& indexes, std::vector<PointcloudPtr>& points,
+                           std::vector<LabelsPtr>& labels, std::vector<ColorsPtr>& colors) {
+  indexes.clear();
+  points.clear();
+  labels.clear();
+
+  std::vector<int32_t> indexesBefore;
+  for (auto it = pointsCache_.begin(); it != pointsCache_.end(); ++it) indexesBefore.push_back(it->first);
+  std::vector<int32_t> indexesAfter;
+
+  uint32_t scansRead = 0;
+
+  indexes = tiles_[tileIdxToOffset(i, j)].indexes;
+  for (uint32_t t : indexes) {
+    indexesAfter.push_back(t);
+    if (pointsCache_.find(t) == pointsCache_.end()) {
+      scansRead += 1;
+
+      points.push_back(std::shared_ptr<Laserscan>(new Laserscan));
+      readPoints(velodyne_filenames_[t], *points.back());
+      pointsCache_[t] = points.back();
+      points.back()->pose = poses_[t];
+
+      labels.push_back(std::shared_ptr<std::vector<uint32_t>>(new std::vector<uint32_t>()));
+      readLabels(label_filenames_[t], *labels.back());
+      labelCache_[t] = labels.back();
+
+      if (points.back()->size() != labels.back()->size()) {
+        std::cout << "Filename: " << velodyne_filenames_[t] << std::endl;
+        std::cout << "Filename: " << label_filenames_[t] << std::endl;
+        std::cout << "num. points = " << points.back()->size() << " vs. num. labels = " << labels.back()->size()
+                  << std::endl;
+        throw std::runtime_error("Inconsistent number of labels.");
+      }
+
+    } else {
+      points.push_back(pointsCache_[t]);
+      labels.push_back(labelCache_[t]);
+    }
+  }
+
+  std::cout << scansRead << " point clouds read." << std::endl;
+
+  // FIXME: keep more scans in cache. not only remove unloaded scans.
+
+  std::sort(indexesBefore.begin(), indexesBefore.end());
+  std::sort(indexesAfter.begin(), indexesAfter.end());
+
+  std::vector<int32_t> needsDelete(indexesBefore.size());
+  std::vector<int32_t>::iterator end = std::set_difference(
+      indexesBefore.begin(), indexesBefore.end(), indexesAfter.begin(), indexesAfter.end(), needsDelete.begin());
+
+  for (auto it = needsDelete.begin(); it != end; ++it) {
+    pointsCache_.erase(*it);
+    labelCache_.erase(*it);
+  }
+}
+
+const KittiReader::Tile& KittiReader::getTile(const Eigen::Vector3f& position) const {
+  Eigen::Vector2f idx((position.x() + offset_.x()) / tileSize_, (position.y() + offset_.y()) / tileSize_);
+  return tiles_[tileIdxToOffset(idx.x(), idx.y())];
+}
+const KittiReader::Tile& KittiReader::getTile(uint32_t i, uint32_t j) const {
+  return tiles_[tileIdxToOffset(i, j)];
+}
+
+void KittiReader::setTileSize(float size) {
+  tileSize_ = size;
+}
+
+void KittiReader::update(const std::vector<uint32_t>& indexes, std::vector<LabelsPtr>& labels) {
+  for (uint32_t i = 0; i < indexes.size(); ++i) {
+    if (labels[i]->size() == 0) {
+      std::cout << "0 labels?" << std::endl;
+      continue;
+    }
+    std::ofstream out(label_filenames_[indexes[i]].c_str());
+    out.write((const char*)&(*labels[i])[0], labels[i]->size() * sizeof(uint32_t));
+    out.close();
+  }
+}
+
+void KittiReader::readPoints(const std::string& filename, Laserscan& scan) {
+  std::ifstream in(filename.c_str(), std::ios::binary);
+  if (!in.is_open()) return;
+
+  scan.clear();
+
+  in.seekg(0, std::ios::end);
+  uint32_t num_points = in.tellg() / (4 * sizeof(float));
+  in.seekg(0, std::ios::beg);
+
+  std::vector<float> values(4 * num_points);
+  in.read((char*)&values[0], 4 * num_points * sizeof(float));
+
+  in.close();
+  std::vector<Point3f>& points = scan.points;
+  std::vector<float>& remissions = scan.remissions;
+
+  points.resize(num_points);
+  remissions.resize(num_points);
+
+  for (uint32_t i = 0; i < num_points; ++i) {
+    points[i].x = values[4 * i];
+    points[i].y = values[4 * i + 1];
+    points[i].z = values[4 * i + 2];
+    remissions[i] = values[4 * i + 3];
+  }
+}
+
+void KittiReader::readLabels(const std::string& filename, std::vector<uint32_t>& labels) {
+  std::ifstream in(filename.c_str(), std::ios::binary);
+  if (!in.is_open()) {
+    std::cerr << "Unable to open label file. " << std::endl;
+    return;
+  }
+
+  labels.clear();
+
+  in.seekg(0, std::ios::end);
+  uint32_t num_points = in.tellg() / (sizeof(uint32_t));
+  in.seekg(0, std::ios::beg);
+
+  labels.resize(num_points);
+  in.read((char*)&labels[0], num_points * sizeof(uint32_t));
+
+  in.close();
+}
+
+void KittiReader::readPoses(const std::string& filename, std::vector<Eigen::Matrix4f>& poses) {
+  poses = KITTI::Odometry::loadPoses(filename);
+
+  // convert from camera to velodyne coordinate system.
+  Eigen::Matrix4f Tr = calib_["Tr"];
+  Eigen::Matrix4f Tr_inv = Tr.inverse();
+  for (uint32_t i = 0; i < poses.size(); ++i) {
+    poses[i] = Tr_inv * poses[i] * Tr;
+  }
+}
