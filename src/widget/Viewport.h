@@ -58,6 +58,8 @@ class Viewport : public QGLWidget {
 
   void setLabelColors(const std::map<uint32_t, glow::GlColor>& colors);
 
+  void setVoxels(const std::vector<LabeledVoxel>& priorVoxels, const std::vector<LabeledVoxel>& pastVoxels);
+
  signals:
   void labelingChanged();
 
@@ -152,13 +154,19 @@ class Viewport : public QGLWidget {
   glow::GlBuffer<uint32_t> bufLabels_{glow::BufferTarget::ARRAY_BUFFER, glow::BufferUsage::DYNAMIC_DRAW};
   glow::GlBuffer<uint32_t> bufVisible_{glow::BufferTarget::ARRAY_BUFFER, glow::BufferUsage::DYNAMIC_DRAW};
 
+  glow::GlBuffer<LabeledVoxel> bufPriorVoxels_{glow::BufferTarget::ARRAY_BUFFER, glow::BufferUsage::DYNAMIC_DRAW};
+  glow::GlBuffer<LabeledVoxel> bufPastVoxels_{glow::BufferTarget::ARRAY_BUFFER, glow::BufferUsage::DYNAMIC_DRAW};
+
   glow::GlTextureRectangle texLabelColors_;
 
   glow::GlVertexArray vao_no_points_;
   glow::GlVertexArray vao_points_;
+  glow::GlVertexArray vao_prior_voxels_;
+  glow::GlVertexArray vao_past_voxels_;
 
   glow::GlProgram prgDrawPose_;
   glow::GlProgram prgDrawPoints_;
+  glow::GlProgram prgDrawVoxels_;
 
   int32_t pointSize_{1};
 
@@ -187,3 +195,4 @@ class Viewport : public QGLWidget {
 };
 
 #endif /* POINTVIEW_H_ */
+

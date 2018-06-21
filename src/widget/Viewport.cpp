@@ -74,6 +74,16 @@ void Viewport::initVertexBuffers() {
   vao_points_.setVertexAttribute(1, bufRemissions_, 1, AttributeType::FLOAT, false, sizeof(float), nullptr);
   vao_points_.setVertexAttribute(2, bufLabels_, 1, AttributeType::UNSIGNED_INT, false, sizeof(uint32_t), nullptr);
   vao_points_.setVertexAttribute(3, bufVisible_, 1, AttributeType::UNSIGNED_INT, false, sizeof(uint32_t), nullptr);
+
+  vao_prior_voxels_.setVertexAttribute(0, bufPriorVoxels_, 3, AttributeType::FLOAT, false, sizeof(LabeledVoxel),
+                                       reinterpret_cast<GLvoid*>(0));
+  vao_prior_voxels_.setVertexAttribute(1, bufPriorVoxels_, 1, AttributeType::UNSIGNED_INT, false, sizeof(LabeledVoxel),
+                                       reinterpret_cast<GLvoid*>(sizeof(glow::vec3)));
+
+  vao_past_voxels_.setVertexAttribute(0, bufPastVoxels_, 3, AttributeType::FLOAT, false, sizeof(LabeledVoxel),
+                                      reinterpret_cast<GLvoid*>(0));
+  vao_past_voxels_.setVertexAttribute(1, bufPastVoxels_, 1, AttributeType::UNSIGNED_INT, false, sizeof(LabeledVoxel),
+                                      reinterpret_cast<GLvoid*>(sizeof(glow::vec3)));
 }
 
 void Viewport::setMaximumScans(uint32_t numScans) {
@@ -86,6 +96,14 @@ void Viewport::setMaximumScans(uint32_t numScans) {
   bufRemissions_.resize(max_size);
   bufVisible_.resize(max_size);
   bufLabels_.resize(max_size);
+}
+
+void Viewport::setVoxels(const std::vector<LabeledVoxel>& priorVoxels, const std::vector<LabeledVoxel>& pastVoxels) {
+  bufPriorVoxels_.resize(priorVoxels.size());
+  bufPastVoxels_.resize(pastVoxels.size());
+
+  bufPriorVoxels_.assign(priorVoxels);
+  bufPastVoxels_.assign(pastVoxels);
 }
 
 void Viewport::setPoints(const std::vector<PointcloudPtr>& priorPoints, std::vector<LabelsPtr>& priorLabels,
@@ -354,7 +372,7 @@ void Viewport::drawPoints(const Eigen::Matrix4f& anchor_pose, const std::vector<
     //      if (showSingleScan && (it->first != points_[singleScanIdx_].get())) continue;
 
     Eigen::Matrix4f pose = anchor_pose.inverse() * it->scan->pose;
-//    pose = it->scan->pose;
+    //    pose = it->scan->pose;
 
     prgDrawPoints_.setUniform(GlUniform<Eigen::Matrix4f>("pose", pose));
     mvp_ = projection_ * view_ * conversion_ * pose;

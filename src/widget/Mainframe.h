@@ -35,7 +35,16 @@ class Mainframe : public QMainWindow {
  protected:
   void readAsync(uint32_t idx);
 
+  /** \brief update scans in the viewport.
+   *  note: must happen in the thread the OpenGL context resides.
+   **/
   void updateScans();
+
+  /** \brief update voxelgrid in the viewport.
+   *  note: must happen in the thread the OpenGL context resides.
+   **/
+  void updateVoxelGrids();
+
   void activateSpinner();
 
   void forward();
@@ -76,8 +85,11 @@ class Mainframe : public QMainWindow {
   KittiReader reader_;
   std::future<void> readerFuture_;
 
-  VoxelGrid priorVoxels_;
-  VoxelGrid pastVoxels_;
+  VoxelGrid priorVoxelGrid_;
+  VoxelGrid pastVoxelGrid_;
+
+  std::vector<LabeledVoxel> priorVoxels_;
+  std::vector<LabeledVoxel> pastVoxels_;
 };
 
 #endif /* MAINFRAME_H_ */

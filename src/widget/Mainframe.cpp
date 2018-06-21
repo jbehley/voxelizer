@@ -62,7 +62,11 @@ Mainframe::Mainframe() : mChangesSinceLastSave(false) {
   reader_.setNumPriorScans(ui.spinPriorScans->value());
 
   // TODO: find reasonable voxel volume size.
-  priorVoxels_.initialize(ui.spinVoxelSize->value(), Eigen::Vector4f(0, -20, -2, 1), Eigen::Vector4f(40, 20, 1, 1));
+  Eigen::Vector4f minExtent(0, -20, -2, 1);
+  Eigen::Vector4f maxExtent(40, 20, 1, 1);
+
+  priorVoxelGrid_.initialize(ui.spinVoxelSize->value(), minExtent, maxExtent);
+  pastVoxelGrid_.initialize(ui.spinVoxelSize->value(), minExtent, maxExtent);
 }
 
 Mainframe::~Mainframe() {}
@@ -166,18 +170,27 @@ void Mainframe::readAsync(uint32_t idx) {
 
   emit readerFinshed();
 
+  emit buildVoxelgridStarted();
+
   priorVoxels_.clear();
   pastVoxels_.clear();
   if (priorPoints_.size() > 0) {
-    Eigen::Matrix4f anchor_pose = priorPoints_.back()->pose.inverse();
+    Eigen::Matrix4f anchor_pose = priorPoints_.back()->pose;
 
-    fillVoxelGrid(anchor_pose, priorPoints_, priorLabels_, priorVoxels_);
+    fillVoxelGrid(anchor_pose, priorPoints_, priorLabels_, priorVoxelGrid_);
 
-    fillVoxelGrid(anchor_pose, priorPoints_, priorLabels_, pastVoxels_);
-    fillVoxelGrid(anchor_pose, pastPoints_, pastLabels_, pastVoxels_);
+    fillVoxelGrid(anchor_pose, priorPoints_, priorLabels_, pastVoxelGrid_);
+    fillVoxelGrid(anchor_pose, pastPoints_, pastLabels_, pastVoxelGrid_);
   }
+
+  // extract voxels and labels.
+
   ui.sldTimeline->setEnabled(true);
+
+  emit buildVoxelgridFinished();
 }
+
+void Mainframe::updateVoxelGrids() { ui.mViewportXYZ->setVoxels(priorVoxels_, pastVoxels_); }
 
 void Mainframe::fillVoxelGrid(const Eigen::Matrix4f& anchor_pose, const std::vector<PointcloudPtr>& points,
                               const std::vector<LabelsPtr>& labels, VoxelGrid& grid) {
@@ -185,7 +198,7 @@ void Mainframe::fillVoxelGrid(const Eigen::Matrix4f& anchor_pose, const std::vec
     const Eigen::Matrix4f& pose = points[t]->pose;
     for (uint32_t i = 0; i < points[t]->points.size(); ++i) {
       const Point3f& pp = points[t]->points[i];
-      Eigen::Vector4f p = anchor_pose * pose * Eigen::Vector4f(pp.x, pp.y, pp.z, 1);
+      Eigen::Vector4f p = anchor_pose.inverse() * pose * Eigen::Vector4f(pp.x, pp.y, pp.z, 1);
 
       grid.insert(p, (*labels[t])[i]);
     }
