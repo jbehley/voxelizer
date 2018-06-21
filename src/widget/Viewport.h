@@ -42,11 +42,12 @@ class Viewport : public QGLWidget {
   enum FLAGS { FLAG_OVERWRITE = 1, FLAG_OTHER = 2 };
 
   Viewport(QWidget* parent = 0, Qt::WindowFlags f = 0);
-  ~Viewport();
+  virtual ~Viewport();
 
   void setMaximumScans(uint32_t numScans);
 
-  void setPoints(const std::vector<PointcloudPtr>& points, std::vector<LabelsPtr>& labels);
+  void setPoints(const std::vector<PointcloudPtr>& priorPoints, std::vector<LabelsPtr>& priorLabels,
+                 const std::vector<PointcloudPtr>& pastPoints, std::vector<LabelsPtr>& pastLabels);
 
   void setDrawingOption(const std::string& name, bool value);
 
@@ -69,6 +70,12 @@ class Viewport : public QGLWidget {
   void setFilteredLabels(const std::vector<uint32_t>& labels);
 
  protected:
+  struct BufferInfo {
+    uint32_t index;
+    uint32_t size;
+    Laserscan* scan;
+  };
+
   bool initContext() {
     // enabling core profile
     QGLFormat corefmt;
@@ -94,6 +101,8 @@ class Viewport : public QGLWidget {
   void resizeGL(int width, int height);
   void paintGL();
 
+  void drawPoints(const Eigen::Matrix4f& anchor_pose, const std::vector<BufferInfo>& indexes);
+
   void mousePressEvent(QMouseEvent*);
   void mouseReleaseEvent(QMouseEvent*);
   void mouseMoveEvent(QMouseEvent*);
@@ -104,13 +113,21 @@ class Viewport : public QGLWidget {
   glow::GlCamera::MouseButton resolveMouseButton(Qt::MouseButtons button);
 
   //  void drawPoints(const std::vector<Point3f>& points, const std::vector<uint32_t>& labels);
-  void labelPoints(int32_t x, int32_t y, float radius, uint32_t label);
+  //  void labelPoints(int32_t x, int32_t y, float radius, uint32_t label);
+
+  void fillBuffers(const std::vector<PointcloudPtr>& points, const std::vector<LabelsPtr>& labels,
+                   std::vector<BufferInfo>& indexes);
 
   bool contextInitialized_;
   std::map<uint32_t, glow::GlColor> mLabelColors;
 
-  std::vector<PointcloudPtr> points_;
-  std::vector<LabelsPtr> labels_;
+  std::vector<PointcloudPtr> priorPoints_;
+  std::vector<LabelsPtr> priorLabels_;
+  std::vector<BufferInfo> priorIndexes_;
+
+  std::vector<PointcloudPtr> pastPoints_;
+  std::vector<LabelsPtr> pastLabels_;
+  std::vector<BufferInfo> pastIndexes_;
 
   glow::RoSeCamera mCamera;
   bool mChangeCamera{false};
@@ -153,11 +170,6 @@ class Viewport : public QGLWidget {
   Eigen::Matrix4f projection_{Eigen::Matrix4f::Identity()};
   Eigen::Matrix4f conversion_{glow::RoSe2GL::matrix};
 
-  struct BufferInfo {
-    uint32_t index;
-    uint32_t size;
-  };
-
   std::map<Laserscan*, BufferInfo> bufferContent_;
 
   std::map<std::string, bool> drawingOption_;
@@ -168,6 +180,9 @@ class Viewport : public QGLWidget {
   float groundThreshold_{-1.6f};
 
   uint32_t singleScanIdx_{0};
+
+  std::vector<int32_t> freeIndexes;
+  uint32_t nextFree{0};
 };
 
 #endif /* POINTVIEW_H_ */

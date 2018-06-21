@@ -10,6 +10,8 @@
 #include "data/geometry.h"
 #include "ui_VoxelizerMainFrame.h"
 
+#include "data/VoxelGrid.h"
+
 // TODO: undo.
 
 /** \brief main widget showing the point cloud and tools to label a point cloud/multiple point clouds. **/
@@ -27,8 +29,11 @@ class Mainframe : public QMainWindow {
   void readerStarted();
   void readerFinshed();
 
+  void buildVoxelgridStarted();
+  void buildVoxelgridFinished();
+
  protected:
-  void readAsync(uint32_t i, uint32_t j);
+  void readAsync(uint32_t idx);
 
   void updateScans();
   void activateSpinner();
@@ -42,10 +47,14 @@ class Mainframe : public QMainWindow {
 
   void readConfig();
 
-  std::vector<uint32_t> indexes_;
-  std::vector<PointcloudPtr> points_;
-  std::vector<LabelsPtr> labels_;
-  std::vector<ColorsPtr> colors_;
+  void fillVoxelGrid(const Eigen::Matrix4f& anchor_pose, const std::vector<PointcloudPtr>& points,
+                     const std::vector<LabelsPtr>& labels, VoxelGrid& grid);
+
+  std::vector<PointcloudPtr> priorPoints_;
+  std::vector<LabelsPtr> priorLabels_;
+
+  std::vector<PointcloudPtr> pastPoints_;
+  std::vector<LabelsPtr> pastLabels_;
 
   std::vector<uint32_t> filteredLabels;
   std::string filename;
@@ -66,6 +75,9 @@ class Mainframe : public QMainWindow {
 
   KittiReader reader_;
   std::future<void> readerFuture_;
+
+  VoxelGrid priorVoxels_;
+  VoxelGrid pastVoxels_;
 };
 
 #endif /* MAINFRAME_H_ */

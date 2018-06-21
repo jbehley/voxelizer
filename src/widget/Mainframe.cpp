@@ -39,9 +39,11 @@ Mainframe::Mainframe() : mChangesSinceLastSave(false) {
   connect(ui.chkShowColor, &QCheckBox::toggled,
           [this](bool value) { ui.mViewportXYZ->setDrawingOption("color", value); });
 
-
   connect(this, &Mainframe::readerFinshed, this, &Mainframe::updateScans);
   connect(this, &Mainframe::readerStarted, this, &Mainframe::activateSpinner);
+
+  connect(ui.rdoTrainVoxels, &QRadioButton::toggled,
+          [this](bool value) { ui.mViewportXYZ->setDrawingOption("show train", value); });
 
   /** load labels and colors **/
   std::map<uint32_t, std::string> label_names;
@@ -53,6 +55,14 @@ Mainframe::Mainframe() : mChangesSinceLastSave(false) {
   ui.mViewportXYZ->setLabelColors(label_colors);
 
   readConfig();
+
+  ui.mViewportXYZ->setFilteredLabels(filteredLabels);
+
+  reader_.setNumPastScans(ui.spinPastScans->value());
+  reader_.setNumPriorScans(ui.spinPriorScans->value());
+
+  // TODO: find reasonable voxel volume size.
+  priorVoxels_.initialize(ui.spinVoxelSize->value(), Eigen::Vector4f(0, -20, -2, 1), Eigen::Vector4f(40, 20, 1, 1));
 }
 
 Mainframe::~Mainframe() {}
@@ -107,12 +117,16 @@ void Mainframe::open() {
 
     //    if (ui.sldTimeline->value() == 0) setCurrentScanIdx(0);
     //    ui.sldTimeline->setValue(0);
-    const auto& tile = reader_.getTile(Eigen::Vector3f::Zero());
-    readerFuture_ = std::async(std::launch::async, &Mainframe::readAsync, this, tile.i, tile.j);
+
+    readerFuture_ = std::async(std::launch::async, &Mainframe::readAsync, this, 0);
+
+    ui.sldTimeline->setEnabled(false);
+    ui.sldTimeline->setMaximum(reader_.count());
+    ui.sldTimeline->setValue(0);
 
     lastDirectory = base_dir.absolutePath();
 
-    QString title = "Point Labeler - ";
+    QString title = "Voxelizer - ";
     title += QFileInfo(retValue).completeBaseName();
     setWindowTitle(title);
 
@@ -126,59 +140,65 @@ void Mainframe::save() {
 
 void Mainframe::unsavedChanges() { mChangesSinceLastSave = true; }
 
-void Mainframe::setCurrentScanIdx(int32_t idx) { ui.mViewportXYZ->setScanIndex(idx); }
+void Mainframe::setCurrentScanIdx(int32_t idx) {
+  readerFuture_ = std::async(std::launch::async, &Mainframe::readAsync, this, idx);
 
-void Mainframe::readAsync(uint32_t i, uint32_t j) {
+  ui.sldTimeline->setEnabled(false);
+}
+
+void Mainframe::readAsync(uint32_t idx) {
   // TODO progress indicator.
   emit readerStarted();
 
-  std::vector<uint32_t> indexes;
-  std::vector<PointcloudPtr> points;
-  std::vector<LabelsPtr> labels;
-  std::vector<ColorsPtr> colors;
+  ui.sldTimeline->setEnabled(false);
 
-  std::vector<uint32_t> oldIndexes = indexes_;
-  std::vector<LabelsPtr> oldLabels = labels_;
+  std::vector<PointcloudPtr> priorPoints;
+  std::vector<LabelsPtr> priorLabels;
+  std::vector<PointcloudPtr> pastPoints;
+  std::vector<LabelsPtr> pastLabels;
 
-  reader_.retrieve(i, j, indexes, points, labels, colors);
+  reader_.retrieve(idx, priorPoints, priorLabels, pastPoints, pastLabels);
 
-  indexes_ = indexes;
-  points_ = points;
-  labels_ = labels;
-  colors_ = colors;
-
-  // find difference.
-  std::vector<uint32_t> diff_indexes;
-  index_difference(oldLabels, labels_, diff_indexes);
-
-  std::vector<uint32_t> removedIndexes;
-  std::vector<LabelsPtr> removedLabels;
-
-  for (auto index : diff_indexes) {
-    removedIndexes.push_back(oldIndexes[index]);
-    removedLabels.push_back(oldLabels[index]);
-  }
-  // only update really needed label files.
-  reader_.update(removedIndexes, removedLabels);
-
-  const auto& tile = reader_.getTile(i, j);
-
+  priorPoints_ = priorPoints;
+  priorLabels_ = priorLabels;
+  pastPoints_ = pastPoints;
+  pastLabels_ = pastLabels;
 
   emit readerFinshed();
+
+  priorVoxels_.clear();
+  pastVoxels_.clear();
+  if (priorPoints_.size() > 0) {
+    Eigen::Matrix4f anchor_pose = priorPoints_.back()->pose.inverse();
+
+    fillVoxelGrid(anchor_pose, priorPoints_, priorLabels_, priorVoxels_);
+
+    fillVoxelGrid(anchor_pose, priorPoints_, priorLabels_, pastVoxels_);
+    fillVoxelGrid(anchor_pose, pastPoints_, pastLabels_, pastVoxels_);
+  }
+  ui.sldTimeline->setEnabled(true);
 }
 
-void Mainframe::activateSpinner() {
-  statusBar()->showMessage("     Reading scans...");
+void Mainframe::fillVoxelGrid(const Eigen::Matrix4f& anchor_pose, const std::vector<PointcloudPtr>& points,
+                              const std::vector<LabelsPtr>& labels, VoxelGrid& grid) {
+  for (uint32_t t = 0; t < points.size(); ++t) {
+    const Eigen::Matrix4f& pose = points[t]->pose;
+    for (uint32_t i = 0; i < points[t]->points.size(); ++i) {
+      const Point3f& pp = points[t]->points[i];
+      Eigen::Vector4f p = anchor_pose * pose * Eigen::Vector4f(pp.x, pp.y, pp.z, 1);
+
+      grid.insert(p, (*labels[t])[i]);
+    }
+  }
 }
+
+void Mainframe::activateSpinner() { statusBar()->showMessage("     Reading scans..."); }
 
 void Mainframe::updateScans() {
   statusBar()->clearMessage();
   glow::_CheckGlError(__FILE__, __LINE__);
-  ui.mViewportXYZ->setPoints(points_, labels_);
+  ui.mViewportXYZ->setPoints(priorPoints_, priorLabels_, pastPoints_, pastLabels_);
   glow::_CheckGlError(__FILE__, __LINE__);
-
-  ui.sldTimeline->setMaximum(indexes_.size());
-  ui.sldTimeline->setValue(0);
 }
 
 void Mainframe::forward() {
@@ -211,16 +231,10 @@ void Mainframe::readConfig() {
       std::cout << "-- Setting 'max scans' to " << numScans << std::endl;
     }
 
-    if (tokens[0] == "tile size") {
-      float tileSize = boost::lexical_cast<float>(trim(tokens[1]));
-      reader_.setTileSize(tileSize);
-      std::cout << "-- Setting 'tile size' to " << tileSize << std::endl;
-    }
-
     if (tokens[0] == "max range") {
       float range = boost::lexical_cast<float>(trim(tokens[1]));
       ui.mViewportXYZ->setMaxRange(range);
-      reader_.setMaximumDistance(range);
+
       std::cout << "-- Setting 'max range' to " << range << std::endl;
     }
 
@@ -228,6 +242,14 @@ void Mainframe::readConfig() {
       float range = boost::lexical_cast<float>(trim(tokens[1]));
       ui.mViewportXYZ->setMinRange(range);
       std::cout << "-- Setting 'min range' to " << range << std::endl;
+    }
+
+    if (tokens[0] == "ignore") {
+      tokens = split(tokens[1], ",");
+      for (const auto& token : tokens) {
+        uint32_t label = boost::lexical_cast<uint32_t>(trim(token));
+        filteredLabels.push_back(label);
+      }
     }
   }
 

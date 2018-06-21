@@ -39,10 +39,7 @@ void main()
   vec2 v = (pose * vec4(in_vertex, 1.0)).xy - tilePos;
   
     
-  bool visible = (in_visible > uint(0)) && (!removeGround || v_global.z > texture(heightMap, v / tileSize + 0.5).r + groundThreshold); 
-  
-
-  visible = visible && (showAllPoints || (abs(v.x) < 0.5 * tileSize && abs(v.y) < 0.5 * tileSize));
+  bool visible = (in_visible > uint(0)); 
   
   if(!visible || range < minRange || range > maxRange) gl_Position = vec4(-10, -10, -10, 1);
   

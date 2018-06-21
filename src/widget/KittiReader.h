@@ -18,38 +18,19 @@
 
 class KittiReader {
  public:
-  struct Tile {
-    int32_t i, j;
-    std::vector<uint32_t> indexes;
-    float x, y, size;
-  };
-
   void initialize(const QString& directory);
 
   uint32_t count() const { return velodyne_filenames_.size(); }
 
-  void setMaximumDistance(float distance) { maxDistance_ = distance; }
+  void setNumPriorScans(int32_t count) { numPriorScans_ = count; }
+  void setNumPastScans(int32_t count) { numPastScans_ = count; }
 
   /** \brief get points and labels for given index. **/
   //  void retrieve(uint32_t index, std::vector<uint32_t>& indexes, std::vector<PointcloudPtr>& points,
   //                std::vector<LabelsPtr>& labels);
 
-  void retrieve(const Eigen::Vector3f& position, std::vector<uint32_t>& indexes, std::vector<PointcloudPtr>& points,
-                std::vector<LabelsPtr>& labels, std::vector<ColorsPtr>& colors);
-
-  void retrieve(uint32_t i, uint32_t j, std::vector<uint32_t>& indexes, std::vector<PointcloudPtr>& points,
-                std::vector<LabelsPtr>& labels, std::vector<ColorsPtr>& colors);
-
-  void update(const std::vector<uint32_t>& indexes, std::vector<LabelsPtr>& labels);
-
-  void setTileSize(float size);
-
-  const std::vector<Tile>& getTiles() const { return tiles_; }
-
-  const Tile& getTile(const Eigen::Vector3f& pos) const;
-  const Tile& getTile(uint32_t i, uint32_t j) const;
-
-  const Eigen::Vector2i& numTiles() const { return numTiles_; }
+  void retrieve(int32_t idx, std::vector<PointcloudPtr>& priorPoints, std::vector<LabelsPtr>& pirorLabels,
+                std::vector<PointcloudPtr>& pastPoints, std::vector<LabelsPtr>& pastLabels);
 
  protected:
   void readPoints(const std::string& filename, Laserscan& scan);
@@ -66,13 +47,8 @@ class KittiReader {
   std::map<uint32_t, LabelsPtr> labelCache_;
 
   float maxDistance_{15.0f};
-
-  inline uint32_t tileIdxToOffset(uint32_t i, uint32_t j) const { return i + j * numTiles_.x(); }
-
-  float tileSize_{50};
-  std::vector<Tile> tiles_;
-  Eigen::Vector2f offset_;
-  Eigen::Vector2i numTiles_;
+  int32_t numPriorScans_{0};
+  int32_t numPastScans_{10};
 };
 
 #endif /* SRC_WIDGET_KITTIREADER_H_ */
