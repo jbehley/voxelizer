@@ -65,6 +65,7 @@ void KittiReader::retrieve(int32_t idx, std::vector<PointcloudPtr>& priorPoints,
   uint32_t scansRead = 0;
 
   for (int32_t t = std::max<int32_t>(0, idx - numPriorScans_); t <= idx; ++t) {
+
     indexesAfter.push_back(t);
     if (pointsCache_.find(t) == pointsCache_.end()) {
       scansRead += 1;
@@ -92,36 +93,38 @@ void KittiReader::retrieve(int32_t idx, std::vector<PointcloudPtr>& priorPoints,
     }
   }
 
-//  for (int32_t t = int32_t(std::min<int32_t>(velodyne_filenames_.size()-1, idx + 1));
-//       t < int32_t(std::min<int32_t>(velodyne_filenames_.size(), idx + numPastScans_ + 1)); ++t) {
-//    indexesAfter.push_back(t);
-//    if (pointsCache_.find(t) == pointsCache_.end()) {
-//      scansRead += 1;
-//
-//      pastPoints.push_back(std::shared_ptr<Laserscan>(new Laserscan));
-//      readPoints(velodyne_filenames_[t], *pastPoints.back());
-//      pointsCache_[t] = pastPoints.back();
-//      pastPoints.back()->pose = poses_[t];
-//
-//      pastLabels.push_back(std::shared_ptr<std::vector<uint32_t>>(new std::vector<uint32_t>()));
-//      readLabels(label_filenames_[t], *pastLabels.back());
-//      labelCache_[t] = pastLabels.back();
-//
-//      if (pastPoints.back()->size() != pastLabels.back()->size()) {
-//        std::cout << "Filename: " << velodyne_filenames_[t] << std::endl;
-//        std::cout << "Filename: " << label_filenames_[t] << std::endl;
-//        std::cout << "num. points = " << pastPoints.back()->size() << " vs. num. labels = " << pastLabels.back()->size()
-//                  << std::endl;
-//        throw std::runtime_error("Inconsistent number of labels.");
-//      }
-//
-//    } else {
-//      pastPoints.push_back(pointsCache_[t]);
-//      pastLabels.push_back(labelCache_[t]);
-//    }
-//  }
+  for (int32_t t = int32_t(std::min<int32_t>(velodyne_filenames_.size() - 1, idx + 1));
+       t < int32_t(std::min<int32_t>(velodyne_filenames_.size(), idx + numPastScans_ + 1)); ++t) {
+
+    indexesAfter.push_back(t);
+    if (pointsCache_.find(t) == pointsCache_.end()) {
+      scansRead += 1;
+
+      pastPoints.push_back(std::shared_ptr<Laserscan>(new Laserscan));
+      readPoints(velodyne_filenames_[t], *pastPoints.back());
+      pointsCache_[t] = pastPoints.back();
+      pastPoints.back()->pose = poses_[t];
+
+      pastLabels.push_back(std::shared_ptr<std::vector<uint32_t>>(new std::vector<uint32_t>()));
+      readLabels(label_filenames_[t], *pastLabels.back());
+      labelCache_[t] = pastLabels.back();
+
+      if (pastPoints.back()->size() != pastLabels.back()->size()) {
+        std::cout << "Filename: " << velodyne_filenames_[t] << std::endl;
+        std::cout << "Filename: " << label_filenames_[t] << std::endl;
+        std::cout << "num. points = " << pastPoints.back()->size() << " vs. num. labels = " << pastLabels.back()->size()
+                  << std::endl;
+        throw std::runtime_error("Inconsistent number of labels.");
+      }
+
+    } else {
+      pastPoints.push_back(pointsCache_[t]);
+      pastLabels.push_back(labelCache_[t]);
+    }
+  }
 
   std::cout << scansRead << " point clouds read." << std::endl;
+
 
   // FIXME: keep more scans in cache. not only remove unloaded scans.
 

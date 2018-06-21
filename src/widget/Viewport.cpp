@@ -127,22 +127,24 @@ void Viewport::setPoints(const std::vector<PointcloudPtr>& priorPoints, std::vec
     }
   }
 
+  // reset free indexes.
+  freeIndexes.clear();
+  nextFree = 0;
+
+  // get already used/occupied indexes.
+
   std::vector<int32_t> usedIndexes;
-  for (auto it = bufferContent_.begin(); it != bufferContent_.end(); ++it) {
-    usedIndexes.push_back(it->second.index);
-  }
+  for (auto it = bufferContent_.begin(); it != bufferContent_.end(); ++it) usedIndexes.push_back(it->second.index);
 
   std::sort(usedIndexes.begin(), usedIndexes.end());
   usedIndexes.push_back(maxScans_);
 
-  //  std::vector<int32_t> freeIndexes;
   for (int32_t j = 0; j < usedIndexes[0]; ++j) freeIndexes.push_back(j);
   for (uint32_t i = 0; i < usedIndexes.size() - 1; ++i) {
     for (int32_t j = usedIndexes[i] + 1; j < usedIndexes[i + 1]; ++j) freeIndexes.push_back(j);
   }
 
-  nextFree = 0;
-  uint32_t loadedScans = 0;
+  loadedScans = 0;
 
   fillBuffers(priorPoints, priorLabels, priorIndexes_);
   fillBuffers(pastPoints, pastLabels, pastIndexes_);
@@ -199,15 +201,17 @@ void Viewport::fillBuffers(const std::vector<PointcloudPtr>& points, const std::
       //      memcpy_time += Stopwatch::toc();
 
       indexes.push_back(info);
+
+      loadedScans += 1;
     } else {
       indexes.push_back(bufferContent_[points[i].get()]);
-      indexes.back().scan = points[i].get();
+      //      indexes.back().scan = points[i].get();
     }
   }
 
-  for (uint32_t i = 0; i < indexes.size(); ++i) {
-    std::cout << indexes[i].index << ", " << indexes[i].scan << std::endl;
-  }
+  //  for (uint32_t i = 0; i < indexes.size(); ++i) {
+  //    std::cout << indexes[i].index << ", " << indexes[i].scan << std::endl;
+  //  }
 }
 
 void Viewport::setLabelColors(const std::map<uint32_t, glow::GlColor>& colors) {
@@ -350,7 +354,7 @@ void Viewport::drawPoints(const Eigen::Matrix4f& anchor_pose, const std::vector<
     //      if (showSingleScan && (it->first != points_[singleScanIdx_].get())) continue;
 
     Eigen::Matrix4f pose = anchor_pose.inverse() * it->scan->pose;
-    pose = it->scan->pose;
+//    pose = it->scan->pose;
 
     prgDrawPoints_.setUniform(GlUniform<Eigen::Matrix4f>("pose", pose));
     mvp_ = projection_ * view_ * conversion_ * pose;
@@ -361,10 +365,10 @@ void Viewport::drawPoints(const Eigen::Matrix4f& anchor_pose, const std::vector<
   }
 }
 
-std::ostream& operator<<(std::ostream& os, const vec2& v) {
-  os << "(" << v.x << ", " << v.y << ")";
-  return os;
-}
+// std::ostream& operator<<(std::ostream& os, const vec2& v) {
+//  os << "(" << v.x << ", " << v.y << ")";
+//  return os;
+//}
 
 void Viewport::mousePressEvent(QMouseEvent* event) {
   // if camera consumes the signal, simply return. // here we could also include some remapping.

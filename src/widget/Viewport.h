@@ -183,6 +183,7 @@ class Viewport : public QGLWidget {
 
   std::vector<int32_t> freeIndexes;
   uint32_t nextFree{0};
+  uint32_t loadedScans{0};
 };
 
 #endif /* POINTVIEW_H_ */

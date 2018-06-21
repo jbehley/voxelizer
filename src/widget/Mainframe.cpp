@@ -258,9 +258,9 @@ void Mainframe::readConfig() {
 
 void Mainframe::keyPressEvent(QKeyEvent* event) {
   if (event->key() == Qt::Key_D || event->key() == Qt::Key_Right) {
-    if (ui.btnForward->isEnabled()) forward();
+    if (ui.btnForward->isEnabled() && ui.sldTimeline->isEnabled()) forward();
 
   } else if (event->key() == Qt::Key_A || event->key() == Qt::Key_Left) {
-    if (ui.btnBackward->isEnabled()) backward();
+    if (ui.btnBackward->isEnabled() && ui.sldTimeline->isEnabled()) backward();
   }
 }

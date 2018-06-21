@@ -43,22 +43,24 @@ class VoxelGrid {
       voxels_[idx].count = 0;
       voxels_[idx].labels.clear();
     }
+    occupied_.clear();
   }
 
   void insert(const Eigen::Vector4f& p, uint32_t label) {
     Eigen::Vector4f tp = p - offset_;
-    uint32_t i = std::floor(tp.x() / resolution_);
-    uint32_t j = std::floor(tp.y() / resolution_);
-    uint32_t k = std::floor(tp.z() / resolution_);
+    int32_t i = std::floor(tp.x() / resolution_);
+    int32_t j = std::floor(tp.y() / resolution_);
+    int32_t k = std::floor(tp.z() / resolution_);
 
-    if ((i >= sizex_) || (j >= sizey_) || (k >= sizez_)) return;
+    if ((i >= int32_t(sizex_)) || (j >= int32_t(sizey_)) || (k >= int32_t(sizez_))) return;
+    if ((i < 0) || (j < 0) || (k < 0)) return;
 
     int32_t gidx = i + j * sizex_ + k * sizex_ * sizey_;
-    if (gidx < 0) return;
+    if (gidx < 0 || gidx >= int32_t(voxels_.size())) return;
 
     occupied_.push_back(gidx);
 
-//    float n = voxels_[gidx].count;
+    //    float n = voxels_[gidx].count;
     voxels_[gidx].labels[label] += 1;  //(1. / (n + 1)) * (n * voxels_[gidx].point + p);
     voxels_[gidx].count += 1;
   }

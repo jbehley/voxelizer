@@ -18,9 +18,7 @@ using namespace rv;
 
 KITTICalibration::KITTICalibration() {}
 
-KITTICalibration::KITTICalibration(const std::string& filename) {
-  initialize(filename);
-}
+KITTICalibration::KITTICalibration(const std::string& filename) { initialize(filename); }
 
 const Eigen::Matrix4f& KITTICalibration::operator[](const std::string& name) const {
   if (m_.find(name) == m_.end()) throw std::runtime_error("Unknown name for calibration matrix.");
@@ -59,13 +57,9 @@ void KITTICalibration::initialize(const std::string& filename) {
   cin.close();
 }
 
-void KITTICalibration::clear() {
-  m_.clear();
-}
+void KITTICalibration::clear() { m_.clear(); }
 
-bool KITTICalibration::exists(const std::string& name) const {
-  return (m_.find(name) != m_.end());
-}
+bool KITTICalibration::exists(const std::string& name) const { return (m_.find(name) != m_.end()); }
 
 namespace KITTI {
 
@@ -95,7 +89,9 @@ std::vector<Eigen::Matrix4f> loadPoses(const std::string& file_name) {
     }
 
     for (uint32_t i = 0; i < 12; ++i) {
-      P(i / 4, i - int(i / 4) * 4) = boost::lexical_cast<float>(rv::trim(entries[i]));
+      std::string txt = rv::trim(entries[i]);
+      float value = boost::lexical_cast<float>(txt);
+      P(i / 4, i - int(i / 4) * 4) = value;
     }
 
     poses.push_back(P);
