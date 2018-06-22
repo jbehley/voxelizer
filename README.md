@@ -1,17 +1,6 @@
-# point cloud annotator (PCA)
+# Voxelize point clouds
 
- Tool for labeling of single point clouds or a stream of point clouds. 
- 
- Given the poses of a KITTI point cloud dataset, we load tiles of overlapping point clouds. Thus, multiple point clouds 
- are labeled at once in a certain area. 
-
-
-## Features
- - Support for KITTI Vision Benchmark Point Clouds.
- - Human-readable label description files in xml allow to define label names, ids, and colors.
- - Modern OpenGL shaders for rendering of even millions of points.
- - Tools for labeling of individual points, areas, and filling segments.
- - Filtering of labels makes it easy to label even complicated structures with ease.
+ Tool to voxelize annotated point clouds. 
  
 ## Dependencies
 
@@ -48,7 +37,7 @@ git clone https://github.com/ros/catkin.git
 Clone the repository in your catkin workspace:
 ```bash
 cd ~/catkin_ws/src
-git clone https://github.com/jbehley/point_labeler.git
+git clone https://github.com/jbehley/voxelizer.git
 ```
 Download the additional dependencies:
 ```bash
@@ -56,29 +45,24 @@ catkin deps fetch
 ```
 Then, build the project:
 ```bash
-catkin build fast_change_detection
+catkin build voxelizer
 ```
-Now the project root directory (e.g. `~/catkin_ws/src/point_labeler`) should contain a `bin` directory containing the labeler.
-
- TODO: have more convinent `setup.sh` doing the whole stuff... 
+Now the project root directory (e.g. `~/catkin_ws/src/voxelizer`) should contain a `bin` directory containing the voxelizer.
 
 ## Usage
 
 
-In the `bin` directory, just run `./labeler` to start the labeling tool. 
-
-The labeling tool allows to label a sequence of point clouds in a tile-based fashion, i.e., the tool loads all scans overlapping with the current tile location.
-Thus, you will always label the part of the scans that overlaps with the current tile.
+In the `bin` directory, just run `./voxelizer` to start the voxelizer. 
 
 
 In the `settings.cfg` files you can change the followings options:
 
 <pre>
 
-tile size: 50.0   # size of a tile (the smaller the less scans get loaded.
 max scans: 500    # number of scans to load for a tile. (should be maybe 1000), but this currently very memory consuming.
 min range: 2.5    # minimum distance of points to consider.
 max range: 50.0   # maximum distance of points in the point cloud.
+ignore: 0,250,251,252,253,254  # label ids of labels that should be ignored when building a voxelgrid.
 
 </pre>
 
@@ -93,9 +77,8 @@ When loading a dataset, the data must be organized as follows:
 <pre>
 point cloud folder
 ├── velodyne/             -- directory containing ".bin" files with Velodyne point clouds.   
-├── labels/   [optional]  -- label directory, will be generated if not present.  
-├── image_2/  [optional]  -- directory containing ".png" files from the color   camera.  
-├── calib.txt [optional]  -- calibration of velodyne vs. camera. needed for projection of point cloud into camera.  
+├── labels/               -- label directory, will be generated if not present.    
+├── calib.txt             -- calibration of velodyne vs. camera. needed for projection of point cloud into camera.  
 └── poses.txt             -- file containing the poses of every scan.
 </pre>
 
