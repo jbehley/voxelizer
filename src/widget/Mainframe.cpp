@@ -33,17 +33,41 @@ Mainframe::Mainframe() : mChangesSinceLastSave(false) {
 
   connect(ui.btnBackward, &QToolButton::released, [this]() { backward(); });
 
-  connect(ui.chkShowRemission, &QCheckBox::toggled,
-          [this](bool value) { ui.mViewportXYZ->setDrawingOption("remission", value); });
+  connect(ui.chkShowPoints, &QCheckBox::toggled,
+          [this](bool value) { ui.mViewportXYZ->setDrawingOption("show points", value); });
 
-  connect(ui.chkShowColor, &QCheckBox::toggled,
-          [this](bool value) { ui.mViewportXYZ->setDrawingOption("color", value); });
+  connect(ui.chkShowVoxels, &QCheckBox::toggled,
+          [this](bool value) { ui.mViewportXYZ->setDrawingOption("show voxels", value); });
 
   connect(this, &Mainframe::readerFinshed, this, &Mainframe::updateScans);
   connect(this, &Mainframe::readerStarted, this, &Mainframe::activateSpinner);
+  connect(this, &Mainframe::buildVoxelgridFinished, this, &Mainframe::updateVoxelGrids);
 
   connect(ui.rdoTrainVoxels, &QRadioButton::toggled,
           [this](bool value) { ui.mViewportXYZ->setDrawingOption("show train", value); });
+
+  connect(ui.spinVoxelSize, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged),
+          [this](double value) { updateVoxelSize(value); });
+
+  connect(this, &Mainframe::buildVoxelgridStarted, this, &Mainframe::disableGui);
+  connect(this, &Mainframe::buildVoxelgridFinished, this, &Mainframe::enableGui);
+
+  connect(ui.spinPriorScans, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), [this](int32_t value) {
+    reader_.setNumPriorScans(value);
+    setCurrentScanIdx(ui.sldTimeline->value());
+  });
+
+  connect(ui.spinPastScans, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), [this](int32_t value) {
+    reader_.setNumPastScans(value);
+    setCurrentScanIdx(ui.sldTimeline->value());
+  });
+
+  connect(ui.spinMaxRange, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged),
+          [this](double value) {
+            maxRange = value;
+            ui.mViewportXYZ->setMaxRange(value);
+            setCurrentScanIdx(ui.sldTimeline->value());
+          });
 
   /** load labels and colors **/
   std::map<uint32_t, std::string> label_names;
@@ -62,11 +86,14 @@ Mainframe::Mainframe() : mChangesSinceLastSave(false) {
   reader_.setNumPriorScans(ui.spinPriorScans->value());
 
   // TODO: find reasonable voxel volume size.
-  Eigen::Vector4f minExtent(0, -20, -2, 1);
-  Eigen::Vector4f maxExtent(40, 20, 1, 1);
+  minExtent = Eigen::Vector4f(0, -20, -2, 1);
+  maxExtent = Eigen::Vector4f(40, 20, 1, 1);
 
-  priorVoxelGrid_.initialize(ui.spinVoxelSize->value(), minExtent, maxExtent);
-  pastVoxelGrid_.initialize(ui.spinVoxelSize->value(), minExtent, maxExtent);
+  float voxelSize = ui.spinVoxelSize->value();
+  priorVoxelGrid_.initialize(voxelSize, minExtent, maxExtent);
+  pastVoxelGrid_.initialize(voxelSize, minExtent, maxExtent);
+
+  ui.mViewportXYZ->setVoxelGridProperties(voxelSize, priorVoxelGrid_.offset());
 }
 
 Mainframe::~Mainframe() {}
@@ -139,7 +166,32 @@ void Mainframe::open() {
 }
 
 void Mainframe::save() {
-  // TODO: write appropriate
+  // TODO: write appropriate ccontet of voxel grid to file!
+
+  // Example:
+  //  Eigen::Vector4f offset = grid.offset();
+  //  float voxelSize = grid.resolution();
+  //
+  //  for (uint32_t x = 0; x < grid.size(0); ++x) {
+  //    for (uint32_t y = 0; y < grid.size(1); ++y) {
+  //      for (uint32_t z = 0; z < grid.size(2); ++z) {
+  //        const VoxelGrid::Voxel& v = grid(x, y, z);
+  //
+  //
+  //        uint32_t maxCount = 0;
+  //        uint32_t maxLabel = 0;
+  //
+  //        for (auto it = v.labels.begin(); it != v.labels.end(); ++it) {
+  //          if (it->second > maxCount) {
+  //            maxCount = it->second;
+  //            maxLabel = it->first;
+  //          }
+  //        }
+  //
+  //        // write maxLabel appropriately to file.
+  //      }
+  //    }
+  //  }
 }
 
 void Mainframe::unsavedChanges() { mChangesSinceLastSave = true; }
@@ -170,10 +222,31 @@ void Mainframe::readAsync(uint32_t idx) {
 
   emit readerFinshed();
 
+  buildVoxelGrids();
+
+  ui.sldTimeline->setEnabled(true);
+}
+
+void Mainframe::disableGui() {
+  ui.spinVoxelSize->setEnabled(false);
+  ui.spinPastScans->setEnabled(false);
+  ui.spinPriorScans->setEnabled(false);
+  ui.sldTimeline->setEnabled(false);
+}
+
+void Mainframe::enableGui() {
+  ui.spinVoxelSize->setEnabled(true);
+  ui.spinPastScans->setEnabled(true);
+  ui.spinPriorScans->setEnabled(true);
+  ui.sldTimeline->setEnabled(true);
+}
+
+void Mainframe::buildVoxelGrids() {
   emit buildVoxelgridStarted();
 
-  priorVoxels_.clear();
-  pastVoxels_.clear();
+  priorVoxelGrid_.clear();
+  pastVoxelGrid_.clear();
+
   if (priorPoints_.size() > 0) {
     Eigen::Matrix4f anchor_pose = priorPoints_.back()->pose;
 
@@ -183,14 +256,19 @@ void Mainframe::readAsync(uint32_t idx) {
     fillVoxelGrid(anchor_pose, pastPoints_, pastLabels_, pastVoxelGrid_);
   }
 
+  priorVoxels_.clear();
+  pastVoxels_.clear();
   // extract voxels and labels.
-
-  ui.sldTimeline->setEnabled(true);
+  extractLabeledVoxels(priorVoxelGrid_, priorVoxels_);
+  extractLabeledVoxels(pastVoxelGrid_, pastVoxels_);
 
   emit buildVoxelgridFinished();
 }
 
-void Mainframe::updateVoxelGrids() { ui.mViewportXYZ->setVoxels(priorVoxels_, pastVoxels_); }
+void Mainframe::updateVoxelGrids() {
+  ui.mViewportXYZ->setVoxelGridProperties(std::max<float>(0.01, ui.spinVoxelSize->value()), priorVoxelGrid_.offset());
+  ui.mViewportXYZ->setVoxels(priorVoxels_, pastVoxels_);
+}
 
 void Mainframe::fillVoxelGrid(const Eigen::Matrix4f& anchor_pose, const std::vector<PointcloudPtr>& points,
                               const std::vector<LabelsPtr>& labels, VoxelGrid& grid) {
@@ -198,9 +276,46 @@ void Mainframe::fillVoxelGrid(const Eigen::Matrix4f& anchor_pose, const std::vec
     const Eigen::Matrix4f& pose = points[t]->pose;
     for (uint32_t i = 0; i < points[t]->points.size(); ++i) {
       const Point3f& pp = points[t]->points[i];
-      Eigen::Vector4f p = anchor_pose.inverse() * pose * Eigen::Vector4f(pp.x, pp.y, pp.z, 1);
+      float range = Eigen::Vector3f(pp.x, pp.y, pp.z).norm();
+      if (range < minRange || range > maxRange) continue;
 
-      grid.insert(p, (*labels[t])[i]);
+      Eigen::Vector4f p = anchor_pose.inverse() * pose * Eigen::Vector4f(pp.x, pp.y, pp.z, 1);
+      if (std::find(filteredLabels.begin(), filteredLabels.end(), (*labels[t])[i]) == filteredLabels.end()) {
+        grid.insert(p, (*labels[t])[i]);
+      }
+    }
+  }
+}
+
+void Mainframe::extractLabeledVoxels(const VoxelGrid& grid, std::vector<LabeledVoxel>& labeledVoxels) {
+  labeledVoxels.clear();
+  // fixme: iterate only over occuppied voxels.
+  Eigen::Vector4f offset = grid.offset();
+  float voxelSize = grid.resolution();
+
+  for (uint32_t x = 0; x < grid.size(0); ++x) {
+    for (uint32_t y = 0; y < grid.size(1); ++y) {
+      for (uint32_t z = 0; z < grid.size(2); ++z) {
+        const VoxelGrid::Voxel& v = grid(x, y, z);
+        if (v.count > 0) {
+          LabeledVoxel lv;
+          Eigen::Vector4f pos = offset + Eigen::Vector4f(x * voxelSize, y * voxelSize, z * voxelSize, 0.0f);
+          lv.position = vec3(pos.x(), pos.y(), pos.z());
+
+          uint32_t maxCount = 0;
+          uint32_t maxLabel = 0;
+
+          for (auto it = v.labels.begin(); it != v.labels.end(); ++it) {
+            if (it->second > maxCount) {
+              maxCount = it->second;
+              maxLabel = it->first;
+            }
+          }
+
+          lv.label = maxLabel;
+          labeledVoxels.push_back(lv);
+        }
+      }
     }
   }
 }
@@ -212,6 +327,14 @@ void Mainframe::updateScans() {
   glow::_CheckGlError(__FILE__, __LINE__);
   ui.mViewportXYZ->setPoints(priorPoints_, priorLabels_, pastPoints_, pastLabels_);
   glow::_CheckGlError(__FILE__, __LINE__);
+}
+
+void Mainframe::updateVoxelSize(float voxelSize) {
+  voxelSize = std::max<float>(0.01, voxelSize);
+  priorVoxelGrid_.initialize(voxelSize, minExtent, maxExtent);
+  pastVoxelGrid_.initialize(voxelSize, minExtent, maxExtent);
+
+  readerFuture_ = std::async(std::launch::async, &Mainframe::buildVoxelGrids, this);
 }
 
 void Mainframe::forward() {
@@ -247,6 +370,8 @@ void Mainframe::readConfig() {
     if (tokens[0] == "max range") {
       float range = boost::lexical_cast<float>(trim(tokens[1]));
       ui.mViewportXYZ->setMaxRange(range);
+      ui.spinMaxRange->setValue(range);
+      maxRange = range;
 
       std::cout << "-- Setting 'max range' to " << range << std::endl;
     }
@@ -255,11 +380,13 @@ void Mainframe::readConfig() {
       float range = boost::lexical_cast<float>(trim(tokens[1]));
       ui.mViewportXYZ->setMinRange(range);
       std::cout << "-- Setting 'min range' to " << range << std::endl;
+
+      minRange = range;
     }
 
     if (tokens[0] == "ignore") {
-      tokens = split(tokens[1], ",");
-      for (const auto& token : tokens) {
+      auto label_tokens = split(tokens[1], ",");
+      for (const auto& token : label_tokens) {
         uint32_t label = boost::lexical_cast<uint32_t>(trim(token));
         filteredLabels.push_back(label);
       }

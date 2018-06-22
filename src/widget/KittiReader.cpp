@@ -58,6 +58,8 @@ void KittiReader::retrieve(int32_t idx, std::vector<PointcloudPtr>& priorPoints,
   pastPoints.clear();
   pastLabels.clear();
 
+  if (idx >= int32_t(velodyne_filenames_.size()) || idx < 0) return;
+
   std::vector<int32_t> indexesBefore;
   for (auto it = pointsCache_.begin(); it != pointsCache_.end(); ++it) indexesBefore.push_back(it->first);
   std::vector<int32_t> indexesAfter;
@@ -65,7 +67,6 @@ void KittiReader::retrieve(int32_t idx, std::vector<PointcloudPtr>& priorPoints,
   uint32_t scansRead = 0;
 
   for (int32_t t = std::max<int32_t>(0, idx - numPriorScans_); t <= idx; ++t) {
-
     indexesAfter.push_back(t);
     if (pointsCache_.find(t) == pointsCache_.end()) {
       scansRead += 1;
@@ -95,7 +96,6 @@ void KittiReader::retrieve(int32_t idx, std::vector<PointcloudPtr>& priorPoints,
 
   for (int32_t t = int32_t(std::min<int32_t>(velodyne_filenames_.size() - 1, idx + 1));
        t < int32_t(std::min<int32_t>(velodyne_filenames_.size(), idx + numPastScans_ + 1)); ++t) {
-
     indexesAfter.push_back(t);
     if (pointsCache_.find(t) == pointsCache_.end()) {
       scansRead += 1;
@@ -124,7 +124,6 @@ void KittiReader::retrieve(int32_t idx, std::vector<PointcloudPtr>& priorPoints,
   }
 
   std::cout << scansRead << " point clouds read." << std::endl;
-
 
   // FIXME: keep more scans in cache. not only remove unloaded scans.
 

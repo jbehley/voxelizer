@@ -289,6 +289,9 @@
              <property name="text">
               <string>show points</string>
              </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
             </widget>
            </item>
            <item row="5" column="0" colspan="2">
@@ -320,8 +323,8 @@
          <rect>
           <x>0</x>
           <y>0</y>
-          <width>232</width>
-          <height>459</height>
+          <width>146</width>
+          <height>126</height>
          </rect>
         </property>
         <attribute name="label">

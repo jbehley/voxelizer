@@ -35,15 +35,23 @@ class Mainframe : public QMainWindow {
  protected:
   void readAsync(uint32_t idx);
 
+  void buildVoxelGrids();
+
   /** \brief update scans in the viewport.
    *  note: must happen in the thread the OpenGL context resides.
    **/
   void updateScans();
 
+  void disableGui();
+  void enableGui();
+
   /** \brief update voxelgrid in the viewport.
    *  note: must happen in the thread the OpenGL context resides.
    **/
   void updateVoxelGrids();
+
+  /** \brief update voxel size / resolution of voxel grid. **/
+  void updateVoxelSize(float value);
 
   void activateSpinner();
 
@@ -58,6 +66,8 @@ class Mainframe : public QMainWindow {
 
   void fillVoxelGrid(const Eigen::Matrix4f& anchor_pose, const std::vector<PointcloudPtr>& points,
                      const std::vector<LabelsPtr>& labels, VoxelGrid& grid);
+
+  void extractLabeledVoxels(const VoxelGrid& grid, std::vector<LabeledVoxel>& voxels);
 
   std::vector<PointcloudPtr> priorPoints_;
   std::vector<LabelsPtr> priorLabels_;
@@ -90,6 +100,12 @@ class Mainframe : public QMainWindow {
 
   std::vector<LabeledVoxel> priorVoxels_;
   std::vector<LabeledVoxel> pastVoxels_;
+
+  Eigen::Vector4f minExtent;
+  Eigen::Vector4f maxExtent;
+
+
+  float minRange, maxRange;
 };
 
 #endif /* MAINFRAME_H_ */

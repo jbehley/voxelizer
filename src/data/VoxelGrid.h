@@ -22,6 +22,8 @@ class VoxelGrid {
   };
 
   void initialize(float resolution, const Eigen::Vector4f& min, const Eigen::Vector4f& max) {
+    clear();
+
     resolution_ = resolution;
     sizex_ = std::ceil((max.x() - min.x()) / resolution_);
     sizey_ = std::ceil((max.y() - min.y()) / resolution_);
@@ -36,6 +38,11 @@ class VoxelGrid {
 
     //    center_.head(3) = 0.5 * (max - min) + min;
     //    center_[3] = 0;
+  }
+
+  Voxel& operator()(uint32_t i, uint32_t j, uint32_t k) { return voxels_[i + j * sizex_ + k * sizex_ * sizey_]; }
+  const Voxel& operator()(uint32_t i, uint32_t j, uint32_t k) const {
+    return voxels_[i + j * sizex_ + k * sizex_ * sizey_];
   }
 
   void clear() {
@@ -68,6 +75,10 @@ class VoxelGrid {
   const std::vector<Voxel>& voxels() const { return voxels_; }
 
   const Eigen::Vector4f& offset() const { return offset_; }
+
+  uint32_t size(uint32_t dim) const { return (&sizex_)[std::max<uint32_t>(std::min<uint32_t>(dim, 3), 0)]; }
+
+  float resolution() const { return resolution_; }
 
  protected:
   float resolution_;

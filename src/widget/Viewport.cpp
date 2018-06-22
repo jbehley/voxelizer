@@ -67,6 +67,11 @@ void Viewport::initPrograms() {
   prgDrawPose_.attach(GlShader::fromCache(ShaderType::GEOMETRY_SHADER, "shaders/draw_pose.geom"));
   prgDrawPose_.attach(GlShader::fromCache(ShaderType::FRAGMENT_SHADER, "shaders/passthrough.frag"));
   prgDrawPose_.link();
+
+  prgDrawVoxels_.attach(GlShader::fromCache(ShaderType::VERTEX_SHADER, "shaders/draw_voxels.vert"));
+  prgDrawVoxels_.attach(GlShader::fromCache(ShaderType::GEOMETRY_SHADER, "shaders/draw_voxels.geom"));
+  prgDrawVoxels_.attach(GlShader::fromCache(ShaderType::FRAGMENT_SHADER, "shaders/blinnphong.frag"));
+  prgDrawVoxels_.link();
 }
 
 void Viewport::initVertexBuffers() {
@@ -104,6 +109,15 @@ void Viewport::setVoxels(const std::vector<LabeledVoxel>& priorVoxels, const std
 
   bufPriorVoxels_.assign(priorVoxels);
   bufPastVoxels_.assign(pastVoxels);
+
+  updateGL();
+}
+
+void Viewport::setVoxelGridProperties(float voxelSize, const Eigen::Vector4f& offset) {
+  prgDrawVoxels_.setUniform(GlUniform<float>("voxelSize", voxelSize));
+  prgDrawVoxels_.setUniform(GlUniform<Eigen::Vector4f>("voxelOffset", offset));
+
+  updateGL();
 }
 
 void Viewport::setPoints(const std::vector<PointcloudPtr>& priorPoints, std::vector<LabelsPtr>& priorLabels,
@@ -194,12 +208,11 @@ void Viewport::fillBuffers(const std::vector<PointcloudPtr>& points, const std::
 
       std::vector<uint32_t> visible(num_points, 1);
 
-      //      for (uint32_t j = 0; j < num_points; ++j) {
-      //        if (std::find(mFilteredLabels.begin(), mFilteredLabels.end(), (*labels[i])[j]) != mFilteredLabels.end())
-      //        {
-      //          visible[j] = 0;
-      //        }
-      //      }
+      for (uint32_t j = 0; j < num_points; ++j) {
+        if (std::find(mFilteredLabels.begin(), mFilteredLabels.end(), (*labels[i])[j]) != mFilteredLabels.end()) {
+          visible[j] = 0;
+        }
+      }
 
       //      Stopwatch::tsic();
 
@@ -362,6 +375,40 @@ void Viewport::paintGL() {
     }
     glActiveTexture(GL_TEXTURE0);
     texLabelColors_.release();
+  }
+
+  if (drawingOption_["show voxels"]) {
+    ScopedBinder<GlProgram> program_binder(prgDrawVoxels_);
+
+    if (drawingOption_["show train"])
+      vao_prior_voxels_.bind();
+    else
+      vao_past_voxels_.bind();
+
+    //    bool showSingleScan = drawingOption_["single scan"];
+
+    glActiveTexture(GL_TEXTURE0);
+    texLabelColors_.bind();
+
+    mvp_ = projection_ * view_ * conversion_;
+    prgDrawVoxels_.setUniform(mvp_);
+    prgDrawVoxels_.setUniform(GlUniform<vec3>("lightPos", vec3(-10, 0, 10)));
+    Eigen::Vector4f viewpos_rose = conversion_.inverse() * mCamera.getPosition();
+
+    prgDrawVoxels_.setUniform(GlUniform<vec3>("viewPos", vec3(viewpos_rose.x(), viewpos_rose.y(), viewpos_rose.z())));
+
+    if (drawingOption_["show train"])
+      glDrawArrays(GL_POINTS, 0, bufPriorVoxels_.size());
+    else
+      glDrawArrays(GL_POINTS, 0, bufPastVoxels_.size());
+
+    glActiveTexture(GL_TEXTURE0);
+    texLabelColors_.release();
+
+    if (drawingOption_["show train"])
+      vao_prior_voxels_.release();
+    else
+      vao_past_voxels_.release();
   }
 
   glow::_CheckGlError(__FILE__, __LINE__);

@@ -54,8 +54,10 @@ COMPILE_SHADERS(${VIZ_SHADER_SRC}
   src/shaders/passthrough.frag
   
   src/shaders/draw_pose.geom
-  
+  src/shaders/draw_voxels.vert
+  src/shaders/draw_voxels.geom
   src/shaders/draw_points.vert
+  src/shaders/blinnphong.frag
 )
 
 add_executable(voxelizer 

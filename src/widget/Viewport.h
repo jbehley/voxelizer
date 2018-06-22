@@ -60,6 +60,7 @@ class Viewport : public QGLWidget {
 
   void setVoxels(const std::vector<LabeledVoxel>& priorVoxels, const std::vector<LabeledVoxel>& pastVoxels);
 
+  void setVoxelGridProperties(float voxelSize, const Eigen::Vector4f& offset);
  signals:
   void labelingChanged();
 
@@ -195,4 +196,3 @@ class Viewport : public QGLWidget {
 };
 
 #endif /* POINTVIEW_H_ */
-
