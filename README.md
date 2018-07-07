@@ -24,6 +24,23 @@ sudo apt install python-pip
 sudo pip install catkin_tools catkin_tools_fetch empy
 ```
 
+And Matio for reading / writing Matlab mat-files
+```
+sudo apt install p7zip-full
+
+mkdir -p ~/libs/matio && cd ~/libs/matio
+wget https://kent.dl.sourceforge.net/project/matio/matio/1.5.12/matio-1.5.12.7z
+7z x matio-1.5.12.7z
+cd matio-1.5.12
+chmod +x configure
+./configure
+make -j4
+make check
+sudo make install
+
+```
+
+
 If you do not have a catkin workspace already, create one:
 ```bash
 cd

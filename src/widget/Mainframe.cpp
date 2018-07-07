@@ -16,7 +16,10 @@
 
 #include <boost/lexical_cast.hpp>
 
+#include <matio.h>
+
 using namespace glow;
+
 
 Mainframe::Mainframe() : mChangesSinceLastSave(false) {
   ui.setupUi(this);
@@ -165,33 +168,52 @@ void Mainframe::open() {
   }
 }
 
+
 void Mainframe::save() {
   // TODO: write appropriate ccontet of voxel grid to file!
 
-  // Example:
-  //  Eigen::Vector4f offset = grid.offset();
-  //  float voxelSize = grid.resolution();
-  //
-  //  for (uint32_t x = 0; x < grid.size(0); ++x) {
-  //    for (uint32_t y = 0; y < grid.size(1); ++y) {
-  //      for (uint32_t z = 0; z < grid.size(2); ++z) {
-  //        const VoxelGrid::Voxel& v = grid(x, y, z);
-  //
-  //
-  //        uint32_t maxCount = 0;
-  //        uint32_t maxLabel = 0;
-  //
-  //        for (auto it = v.labels.begin(); it != v.labels.end(); ++it) {
-  //          if (it->second > maxCount) {
-  //            maxCount = it->second;
-  //            maxLabel = it->first;
-  //          }
-  //        }
-  //
-  //        // write maxLabel appropriately to file.
-  //      }
-  //    }
-  //  }
+//    // Example:
+//    Eigen::Vector4f offset = grid.offset();
+//    float voxelSize = grid.resolution();
+//  
+//    for (uint32_t x = 0; x < grid.size(0); ++x) {
+//      for (uint32_t y = 0; y < grid.size(1); ++y) {
+//        for (uint32_t z = 0; z < grid.size(2); ++z) {
+//          const VoxelGrid::Voxel& v = grid(x, y, z);
+//  
+//  
+//          uint32_t maxCount = 0;
+//          uint32_t maxLabel = 0;
+//  
+//          for (auto it = v.labels.begin(); it != v.labels.end(); ++it) {
+//            if (it->second > maxCount) {
+//              maxCount = it->second;
+//              maxLabel = it->first;
+//            }
+//          }
+//  
+//          // write maxLabel appropriately to file.
+//        }
+//      }
+//    }
+	
+  // Create ouput variable:
+  int numElements = 9;
+  char* filename = "outputFilename.mat";
+  int *outputTensor = new int[numElements];
+  for (int i = 0; i < numElements; i++){
+      outputTensor[i] =  i;	//TODO: Fill the output tensor with elements of grid(x,y,z)
+  }
+
+  // Save 1D-outputTensor as mat file
+  mat_t * matfp = Mat_CreateVer(filename, NULL, MAT_FT_MAT5); //or MAT_FT_MAT4 / MAT_FT_MAT73
+  char* fieldname = "data";
+  size_t dim[1] = { numElements };
+  matvar_t *variable = Mat_VarCreate(fieldname, MAT_C_INT32, MAT_T_INT32, 1, dim, outputTensor, 0);
+  Mat_VarWrite(matfp, variable, MAT_COMPRESSION_NONE); //or MAT_COMPRESSION_ZLIB
+  Mat_VarFree(variable);
+
+  Mat_Close(matfp);
 }
 
 void Mainframe::unsavedChanges() { mChangesSinceLastSave = true; }
