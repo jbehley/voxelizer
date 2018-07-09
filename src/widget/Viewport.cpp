@@ -245,6 +245,11 @@ void Viewport::fillBuffers(const std::vector<PointcloudPtr>& points, const std::
   //  }
 }
 
+void Viewport::highlightVoxels(const std::vector<LabeledVoxel>& voxels) {
+  bufHighlightedVoxels_.assign(voxels);
+  updateGL();
+}
+
 void Viewport::setLabelColors(const std::map<uint32_t, glow::GlColor>& colors) {
   mLabelColors = colors;
 
@@ -402,13 +407,21 @@ void Viewport::paintGL() {
     else
       glDrawArrays(GL_POINTS, 0, bufPastVoxels_.size());
 
-    glActiveTexture(GL_TEXTURE0);
-    texLabelColors_.release();
-
     if (drawingOption_["show train"])
       vao_prior_voxels_.release();
     else
       vao_past_voxels_.release();
+
+    if (drawingOption_["highlight voxels"]) {
+      vao_highlighted_voxels_.bind();
+
+      glDrawArrays(GL_POINTS, 0, bufHighlightedVoxels_.size());
+
+      vao_highlighted_voxels_.release();
+    }
+
+    glActiveTexture(GL_TEXTURE0);
+    texLabelColors_.release();
   }
 
   glow::_CheckGlError(__FILE__, __LINE__);

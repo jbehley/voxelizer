@@ -81,6 +81,7 @@ Mainframe::Mainframe() : mChangesSinceLastSave(false) {
   readConfig();
 
   ui.mViewportXYZ->setFilteredLabels(filteredLabels);
+  ui.mViewportXYZ->setDrawingOption("highlight voxels", true);
 
   reader_.setNumPastScans(ui.spinPastScans->value());
   reader_.setNumPriorScans(ui.spinPriorScans->value());
@@ -254,13 +255,23 @@ void Mainframe::buildVoxelGrids() {
 
     fillVoxelGrid(anchor_pose, priorPoints_, priorLabels_, pastVoxelGrid_);
     fillVoxelGrid(anchor_pose, pastPoints_, pastLabels_, pastVoxelGrid_);
-  }
 
-  priorVoxels_.clear();
-  pastVoxels_.clear();
-  // extract voxels and labels.
-  extractLabeledVoxels(priorVoxelGrid_, priorVoxels_);
-  extractLabeledVoxels(pastVoxelGrid_, pastVoxels_);
+    priorVoxels_.clear();
+    pastVoxels_.clear();
+    // extract voxels and labels.
+    extractLabeledVoxels(priorVoxelGrid_, priorVoxels_);
+    extractLabeledVoxels(pastVoxelGrid_, pastVoxels_);
+
+    std::cout << "occluded by" << std::endl;
+    priorVoxelGrid_.occludedBy(10, 10, 10, &visited_);
+    std::cout << "end. " << visited_.size() << " voxels visited." << std::endl;
+
+    // updating occlusions.
+    std::cout << "updating occlusions." << std::endl;
+    priorVoxelGrid_.updateOcclusions();
+    pastVoxelGrid_.updateOcclusions();
+    std::cout << "end" << std::endl;
+  }
 
   emit buildVoxelgridFinished();
 }
@@ -268,6 +279,24 @@ void Mainframe::buildVoxelGrids() {
 void Mainframe::updateVoxelGrids() {
   ui.mViewportXYZ->setVoxelGridProperties(std::max<float>(0.01, ui.spinVoxelSize->value()), priorVoxelGrid_.offset());
   ui.mViewportXYZ->setVoxels(priorVoxels_, pastVoxels_);
+
+  if (visited_.size() > 0) {
+    std::vector<LabeledVoxel> voxels;
+    float voxelSize = priorVoxelGrid_.resolution();
+    Eigen::Vector4f offset = priorVoxelGrid_.offset();
+
+    for (uint32_t i = 0; i < visited_.size(); ++i) {
+      LabeledVoxel lv;
+      Eigen::Vector4f pos = offset + Eigen::Vector4f(visited_[i].x() * voxelSize, visited_[i].y() * voxelSize,
+                                                     visited_[i].z() * voxelSize, 0.0f);
+      lv.position = vec3(pos.x(), pos.y(), pos.z());
+      lv.label = 11;
+      voxels.push_back(lv);
+    }
+    std::cout << visited_.size() << " , " << voxels.size() << std::endl;
+
+    ui.mViewportXYZ->highlightVoxels(voxels);
+  }
 }
 
 void Mainframe::fillVoxelGrid(const Eigen::Matrix4f& anchor_pose, const std::vector<PointcloudPtr>& points,
