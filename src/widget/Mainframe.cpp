@@ -1,27 +1,27 @@
-#include "Mainframe.h"
-
-#include <fstream>
-#include <iostream>
-#include <map>
-
-#include <QtCore/QDir>
-#include <QtCore/QFile>
-#include <QtCore/QFileInfo>
-#include <QtWidgets/QFileDialog>
-
-#include "../data/label_utils.h"
-#include "../data/misc.h"
-
-#include <QtWidgets/QMessageBox>
-
-#include <boost/lexical_cast.hpp>
-
-#include <matio.h>
-
-using namespace glow;
-
-
-Mainframe::Mainframe() : mChangesSinceLastSave(false) {
+  #include "Mainframe.h"
+  
+  #include <fstream>
+  #include <iostream>
+  #include <map>
+  
+  #include <QtCore/QDir>
+  #include <QtCore/QFile>
+  #include <QtCore/QFileInfo>
+  #include <QtWidgets/QFileDialog>
+  
+  #include "../data/label_utils.h"
+  #include "../data/misc.h"
+  
+  #include <QtWidgets/QMessageBox>
+  
+  #include <boost/lexical_cast.hpp>
+  
+  #include <matio.h>
+  
+  using namespace glow;
+  
+  
+  Mainframe::Mainframe() : mChangesSinceLastSave(false) {
   ui.setupUi(this);
 
   connect(ui.actionOpen, SIGNAL(triggered()), this, SLOT(open()));
@@ -171,39 +171,60 @@ void Mainframe::open() {
 
 void Mainframe::save() {
   // TODO: write appropriate ccontet of voxel grid to file!
+  std::cout << "Save button pressed" << std::endl;
+    
+  // Get global variables
+  VoxelGrid grid  = pastVoxelGrid_;
+  //   LabeledVoxel voxels = pastVoxels_;
 
-//    // Example:
-//    Eigen::Vector4f offset = grid.offset();
-//    float voxelSize = grid.resolution();
-//  
-//    for (uint32_t x = 0; x < grid.size(0); ++x) {
-//      for (uint32_t y = 0; y < grid.size(1); ++y) {
-//        for (uint32_t z = 0; z < grid.size(2); ++z) {
-//          const VoxelGrid::Voxel& v = grid(x, y, z);
-//  
-//  
-//          uint32_t maxCount = 0;
-//          uint32_t maxLabel = 0;
-//  
-//          for (auto it = v.labels.begin(); it != v.labels.end(); ++it) {
-//            if (it->second > maxCount) {
-//              maxCount = it->second;
-//              maxLabel = it->first;
-//            }
-//          }
-//  
-//          // write maxLabel appropriately to file.
-//        }
-//      }
-//    }
-	
-  // Create ouput variable:
-  int numElements = 9;
-  char* filename = "outputFilename.mat";
-  int *outputTensor = new int[numElements];
-  for (int i = 0; i < numElements; i++){
-      outputTensor[i] =  i;	//TODO: Fill the output tensor with elements of grid(x,y,z)
+  std::cout << "Save current voxel gid" << std::endl;
+  // Example:
+  Eigen::Vector4f offset = grid.offset();
+  float voxelSize = grid.resolution();
+  
+
+  int Nx = grid.size(0);
+  int Ny = grid.size(1);
+  int Nz = grid.size(2);
+  
+  std::cout << "Nx = " << Nx << std::endl;
+  std::cout << "Ny = " << Ny << std::endl;
+  std::cout << "Nz = " << Nz << std::endl;
+
+  size_t numElements = Nx * Ny * Nz;
+  uint32_t *outputTensor = new uint32_t[numElements];
+  memset(outputTensor, 0, numElements * sizeof(outputTensor[0]));
+  
+  std::cout << "numElements = " << numElements << std::endl;
+
+  int counter = 0;
+  for (uint32_t x = 0; x < grid.size(0); ++x) {
+    for (uint32_t y = 0; y < grid.size(1); ++y) {
+      for (uint32_t z = 0; z < grid.size(2); ++z) {
+        const VoxelGrid::Voxel& v = grid(x, y, z);
+
+
+        uint32_t maxCount = 0;
+        uint32_t maxLabel = 0;
+
+        for (auto it = v.labels.begin(); it != v.labels.end(); ++it) {
+          if (it->second > maxCount) {
+            maxCount = it->second;
+            maxLabel = it->first;
+          }
+        }
+
+        // write maxLabel appropriately to file.
+	// std::cout << "maxLabel at " << x << ", " << y << ", " << z << " is " << maxLabel << std::endl;
+	counter = counter + 1;
+        outputTensor[counter] = maxLabel;
+        
+      }
+    }
   }
+  std::cout << "Counter = " << counter << std::endl;
+  // Create ouput variable:
+  const char* filename = "outputFilename.mat";
 
   // Save 1D-outputTensor as mat file
   mat_t * matfp = Mat_CreateVer(filename, NULL, MAT_FT_MAT5); //or MAT_FT_MAT4 / MAT_FT_MAT73
@@ -214,6 +235,8 @@ void Mainframe::save() {
   Mat_VarFree(variable);
 
   Mat_Close(matfp);
+  
+  std::cout << "Done" << std::endl;
 }
 
 void Mainframe::unsavedChanges() { mChangesSinceLastSave = true; }
