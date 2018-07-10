@@ -53,6 +53,8 @@ class Mainframe : public QMainWindow {
   /** \brief update voxel size / resolution of voxel grid. **/
   void updateVoxelSize(float value);
 
+  void updateOccludedVoxels();
+
   void activateSpinner();
 
   void forward();
@@ -100,10 +102,10 @@ class Mainframe : public QMainWindow {
 
   std::vector<LabeledVoxel> priorVoxels_;
   std::vector<LabeledVoxel> pastVoxels_;
+  std::vector<Eigen::Vector3i> visited_;
 
   Eigen::Vector4f minExtent;
   Eigen::Vector4f maxExtent;
-
 
   float minRange, maxRange;
 };
