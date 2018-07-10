@@ -1,5 +1,7 @@
 #include <data/VoxelGrid.h>
 
+#include <iostream>
+
 void VoxelGrid::initialize(float resolution, const Eigen::Vector4f& min, const Eigen::Vector4f& max) {
   clear();
 
@@ -26,7 +28,14 @@ void VoxelGrid::clear() {
     voxels_[idx].count = 0;
     voxels_[idx].labels.clear();
   }
+
+  for (auto idx : occluded_) {
+    voxels_[idx].count = 0;
+    voxels_[idx].labels.clear();
+  }
+
   occupied_.clear();
+  occluded_.clear();
 }
 
 void VoxelGrid::insert(const Eigen::Vector4f& p, uint32_t label) {
@@ -55,6 +64,22 @@ bool VoxelGrid::isFree(int32_t i, int32_t j, int32_t k) const { return occlusion
 
 void VoxelGrid::insertOcclusionLabels() {
   if (!occlusionsValid_) updateOcclusions();
+
+  for (uint32_t i = 0; i < sizex_; ++i) {
+    for (uint32_t j = 0; j < sizey_; ++j) {
+      for (uint32_t k = 0; k < sizez_; ++k) {
+        // heuristic: find label from above.
+        if (occlusions_[index(i, j, k)] != index(i, j, k)) {
+          int32_t n = 1;
+          while ((k + n < sizez_) && isOccluded(i, j, k + n) && voxels_[index(i, j, k + n)].count == 0) n += 1;
+          if (k + n < sizez_ && voxels_[index(i, j, k + n)].count > 0) {
+            voxels_[index(i, j, k)].count = voxels_[index(i, j, k + n)].count;
+            voxels_[index(i, j, k)].labels = voxels_[index(i, j, k + n)].labels;
+          }
+        }
+      }
+    }
+  }
 }
 
 void VoxelGrid::updateOcclusions() {
@@ -62,9 +87,12 @@ void VoxelGrid::updateOcclusions() {
     for (uint32_t j = 0; j < sizey_; ++j) {
       for (uint32_t k = 0; k < sizez_; ++k) {
         occlusions_[index(i, j, k)] = occludedBy(i, j, k);
+        if (occlusions_[index(i, j, k)] != index(i, j, k)) occluded_.push_back(index(i, j, k));
       }
     }
   }
+
+  occlusionsValid_ = true;
 }
 
 int32_t VoxelGrid::occludedBy(int32_t i, int32_t j, int32_t k, std::vector<Eigen::Vector3i>* visited) const {
@@ -84,9 +112,9 @@ int32_t VoxelGrid::occludedBy(int32_t i, int32_t j, int32_t k, std::vector<Eigen
 
   double halfResolution = 0.5 * resolution_;
 
-  startpoint[0] += halfResolution;
-  startpoint[1] += halfResolution;
-  startpoint[2] += halfResolution;
+  //  startpoint[0] += halfResolution;
+  //  startpoint[1] += halfResolution;
+  //  startpoint[2] += halfResolution;
 
   dir[0] = -startpoint[0];
   dir[1] = -startpoint[1];

@@ -89,6 +89,16 @@ void Viewport::initVertexBuffers() {
                                       reinterpret_cast<GLvoid*>(0));
   vao_past_voxels_.setVertexAttribute(1, bufPastVoxels_, 1, AttributeType::UNSIGNED_INT, false, sizeof(LabeledVoxel),
                                       reinterpret_cast<GLvoid*>(sizeof(glow::vec3)));
+
+  vao_highlighted_voxels_.setVertexAttribute(0, bufHighlightedVoxels_, 3, AttributeType::FLOAT, false,
+                                             sizeof(LabeledVoxel), reinterpret_cast<GLvoid*>(0));
+  vao_highlighted_voxels_.setVertexAttribute(1, bufHighlightedVoxels_, 1, AttributeType::UNSIGNED_INT, false,
+                                             sizeof(LabeledVoxel), reinterpret_cast<GLvoid*>(sizeof(glow::vec3)));
+
+  vao_occluded_voxels_.setVertexAttribute(0, bufOccludedVoxels_, 3, AttributeType::FLOAT, false, sizeof(LabeledVoxel),
+                                          reinterpret_cast<GLvoid*>(0));
+  vao_occluded_voxels_.setVertexAttribute(1, bufOccludedVoxels_, 1, AttributeType::UNSIGNED_INT, false,
+                                          sizeof(LabeledVoxel), reinterpret_cast<GLvoid*>(sizeof(glow::vec3)));
 }
 
 void Viewport::setMaximumScans(uint32_t numScans) {
@@ -116,6 +126,7 @@ void Viewport::setVoxels(const std::vector<LabeledVoxel>& priorVoxels, const std
 void Viewport::setVoxelGridProperties(float voxelSize, const Eigen::Vector4f& offset) {
   prgDrawVoxels_.setUniform(GlUniform<float>("voxelSize", voxelSize));
   prgDrawVoxels_.setUniform(GlUniform<Eigen::Vector4f>("voxelOffset", offset));
+  voxelSize_ = voxelSize;
 
   updateGL();
 }
@@ -247,6 +258,11 @@ void Viewport::fillBuffers(const std::vector<PointcloudPtr>& points, const std::
 
 void Viewport::highlightVoxels(const std::vector<LabeledVoxel>& voxels) {
   bufHighlightedVoxels_.assign(voxels);
+  updateGL();
+}
+
+void Viewport::setOcclusionVoxels(const std::vector<LabeledVoxel>& voxels) {
+  bufOccludedVoxels_.assign(voxels);
   updateGL();
 }
 
@@ -398,6 +414,9 @@ void Viewport::paintGL() {
     mvp_ = projection_ * view_ * conversion_;
     prgDrawVoxels_.setUniform(mvp_);
     prgDrawVoxels_.setUniform(GlUniform<vec3>("lightPos", vec3(-10, 0, 10)));
+    prgDrawVoxels_.setUniform(GlUniform<bool>("use_custom_color", false));
+    prgDrawVoxels_.setUniform(GlUniform<float>("voxelSize", voxelSize_));
+
     Eigen::Vector4f viewpos_rose = conversion_.inverse() * mCamera.getPosition();
 
     prgDrawVoxels_.setUniform(GlUniform<vec3>("viewPos", vec3(viewpos_rose.x(), viewpos_rose.y(), viewpos_rose.z())));
@@ -422,6 +441,25 @@ void Viewport::paintGL() {
 
     glActiveTexture(GL_TEXTURE0);
     texLabelColors_.release();
+  }
+
+  if (drawingOption_["show occluded"]) {
+    ScopedBinder<GlProgram> program_binder(prgDrawVoxels_);
+
+    mvp_ = projection_ * view_ * conversion_;
+    prgDrawVoxels_.setUniform(mvp_);
+    prgDrawVoxels_.setUniform(GlUniform<vec3>("lightPos", vec3(-10, 0, 10)));
+    Eigen::Vector4f viewpos_rose = conversion_.inverse() * mCamera.getPosition();
+    prgDrawVoxels_.setUniform(GlUniform<bool>("use_custom_color", true));
+    prgDrawVoxels_.setUniform(GlUniform<float>("voxelSize", voxelSize_ - 0.2));
+    prgDrawVoxels_.setUniform(GlUniform<vec3>("viewPos", vec3(viewpos_rose.x(), viewpos_rose.y(), viewpos_rose.z())));
+    prgDrawVoxels_.setUniform(GlUniform<vec4>("custom_color", vec4(0.3, 0.3, 0.3, 1.0f)));
+
+    vao_occluded_voxels_.bind();
+
+    glDrawArrays(GL_POINTS, 0, bufOccludedVoxels_.size());
+
+    vao_occluded_voxels_.release();
   }
 
   glow::_CheckGlError(__FILE__, __LINE__);

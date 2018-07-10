@@ -166,7 +166,7 @@
           <x>0</x>
           <y>0</y>
           <width>232</width>
-          <height>459</height>
+          <height>455</height>
          </rect>
         </property>
         <attribute name="label">
@@ -301,6 +301,13 @@
              </property>
             </widget>
            </item>
+           <item row="7" column="0" colspan="2">
+            <widget class="QCheckBox" name="chkShowOccluded">
+             <property name="text">
+              <string>occluded voxels</string>
+             </property>
+            </widget>
+           </item>
           </layout>
          </item>
          <item>
@@ -323,8 +330,8 @@
          <rect>
           <x>0</x>
           <y>0</y>
-          <width>146</width>
-          <height>126</height>
+          <width>153</width>
+          <height>129</height>
          </rect>
         </property>
         <attribute name="label">

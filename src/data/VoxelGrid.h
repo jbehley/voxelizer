@@ -88,12 +88,13 @@ class VoxelGrid {
 
   uint32_t sizex_, sizey_, sizez_;
   std::vector<Voxel> voxels_;
-  std::vector<uint32_t> occupied_;  // filled by updateOcclusions.
+  std::vector<uint32_t> occupied_;
 
   Eigen::Vector4f offset_;
 
-  std::vector<int32_t> occlusions_;
+  std::vector<int32_t> occlusions_;  // filled by updateOcclusions.
   bool occlusionsValid_{false};
+  std::vector<uint32_t> occluded_;  // filled by updateOcclusions.
 };
 
 #endif /* SRC_DATA_VOXELGRID_H_ */
