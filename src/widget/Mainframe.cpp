@@ -84,7 +84,7 @@ Mainframe::Mainframe() : mChangesSinceLastSave(false) {
   readConfig();
 
   ui.mViewportXYZ->setFilteredLabels(filteredLabels);
-  ui.mViewportXYZ->setDrawingOption("highlight voxels", true);
+  ui.mViewportXYZ->setDrawingOption("highlight voxels", false);
 
   reader_.setNumPastScans(ui.spinPastScans->value());
   reader_.setNumPriorScans(ui.spinPriorScans->value());
@@ -201,6 +201,7 @@ void Mainframe::save() {
 void Mainframe::unsavedChanges() { mChangesSinceLastSave = true; }
 
 void Mainframe::setCurrentScanIdx(int32_t idx) {
+  std::cout << "setCurrentScanIdx(" << idx << ")" << std::endl;
   readerFuture_ = std::async(std::launch::async, &Mainframe::readAsync, this, idx);
 
   ui.sldTimeline->setEnabled(false);
@@ -261,9 +262,6 @@ void Mainframe::buildVoxelGrids() {
 
     priorVoxels_.clear();
     pastVoxels_.clear();
-    // extract voxels and labels.
-    extractLabeledVoxels(priorVoxelGrid_, priorVoxels_);
-    extractLabeledVoxels(pastVoxelGrid_, pastVoxels_);
 
     // updating occlusions.
     std::cout << "updating occlusions." << std::endl;
@@ -272,6 +270,10 @@ void Mainframe::buildVoxelGrids() {
 
     priorVoxelGrid_.insertOcclusionLabels();
     pastVoxelGrid_.insertOcclusionLabels();
+
+    // extract voxels and labels.
+    extractLabeledVoxels(priorVoxelGrid_, priorVoxels_);
+    extractLabeledVoxels(pastVoxelGrid_, pastVoxels_);
 
     std::cout << "end" << std::endl;
   }
@@ -296,7 +298,6 @@ void Mainframe::updateVoxelGrids() {
       lv.label = 11;
       voxels.push_back(lv);
     }
-    std::cout << visited_.size() << " , " << voxels.size() << std::endl;
 
     ui.mViewportXYZ->highlightVoxels(voxels);
   }
