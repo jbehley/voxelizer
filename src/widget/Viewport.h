@@ -61,6 +61,10 @@ class Viewport : public QGLWidget {
   void setVoxels(const std::vector<LabeledVoxel>& priorVoxels, const std::vector<LabeledVoxel>& pastVoxels);
 
   void setVoxelGridProperties(float voxelSize, const Eigen::Vector4f& offset);
+
+  void highlightVoxels(const std::vector<LabeledVoxel>& voxels);
+
+  void setOcclusionVoxels(const std::vector<LabeledVoxel>& voxels);
  signals:
   void labelingChanged();
 
@@ -157,6 +161,8 @@ class Viewport : public QGLWidget {
 
   glow::GlBuffer<LabeledVoxel> bufPriorVoxels_{glow::BufferTarget::ARRAY_BUFFER, glow::BufferUsage::DYNAMIC_DRAW};
   glow::GlBuffer<LabeledVoxel> bufPastVoxels_{glow::BufferTarget::ARRAY_BUFFER, glow::BufferUsage::DYNAMIC_DRAW};
+  glow::GlBuffer<LabeledVoxel> bufHighlightedVoxels_{glow::BufferTarget::ARRAY_BUFFER, glow::BufferUsage::DYNAMIC_DRAW};
+  glow::GlBuffer<LabeledVoxel> bufOccludedVoxels_{glow::BufferTarget::ARRAY_BUFFER, glow::BufferUsage::DYNAMIC_DRAW};
 
   glow::GlTextureRectangle texLabelColors_;
 
@@ -164,6 +170,8 @@ class Viewport : public QGLWidget {
   glow::GlVertexArray vao_points_;
   glow::GlVertexArray vao_prior_voxels_;
   glow::GlVertexArray vao_past_voxels_;
+  glow::GlVertexArray vao_highlighted_voxels_;
+  glow::GlVertexArray vao_occluded_voxels_;
 
   glow::GlProgram prgDrawPose_;
   glow::GlProgram prgDrawPoints_;
@@ -193,6 +201,8 @@ class Viewport : public QGLWidget {
   std::vector<int32_t> freeIndexes;
   uint32_t nextFree{0};
   uint32_t loadedScans{0};
+
+  float voxelSize_;
 };
 
 #endif /* POINTVIEW_H_ */

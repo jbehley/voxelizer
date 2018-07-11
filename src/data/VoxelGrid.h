@@ -21,66 +21,69 @@ class VoxelGrid {
     uint32_t count{0};
   };
 
-  void initialize(float resolution, const Eigen::Vector4f& min, const Eigen::Vector4f& max) {
-    clear();
+  /** \brief set parameters of voxel grid and compute internal offsets,  etc. **/
+  void initialize(float resolution, const Eigen::Vector4f& min, const Eigen::Vector4f& max);
 
-    resolution_ = resolution;
-    sizex_ = std::ceil((max.x() - min.x()) / resolution_);
-    sizey_ = std::ceil((max.y() - min.y()) / resolution_);
-    sizez_ = std::ceil((max.z() - min.z()) / resolution_);
+  Voxel& operator()(uint32_t i, uint32_t j, uint32_t k) { return voxels_[index(i, j, k)]; }
+  const Voxel& operator()(uint32_t i, uint32_t j, uint32_t k) const { return voxels_[index(i, j, k)]; }
 
-    voxels_.resize(sizex_ * sizey_ * sizez_);
-    // ensure that min, max are always inside the voxel grid.
-    float ox = min.x() - 0.5 * (sizex_ * resolution - (max.x() - min.x()));
-    float oy = min.y() - 0.5 * (sizey_ * resolution - (max.y() - min.y()));
-    float oz = min.z() - 0.5 * (sizez_ * resolution - (max.z() - min.z()));
-    offset_ = Eigen::Vector4f(ox, oy, oz, 1);
+  /** \brief cleanup voxelgrid. **/
+  void clear();
 
-    //    center_.head(3) = 0.5 * (max - min) + min;
-    //    center_[3] = 0;
-  }
-
-  Voxel& operator()(uint32_t i, uint32_t j, uint32_t k) { return voxels_[i + j * sizex_ + k * sizex_ * sizey_]; }
-  const Voxel& operator()(uint32_t i, uint32_t j, uint32_t k) const {
-    return voxels_[i + j * sizex_ + k * sizex_ * sizey_];
-  }
-
-  void clear() {
-    for (auto idx : occupied_) {
-      voxels_[idx].count = 0;
-      voxels_[idx].labels.clear();
-    }
-    occupied_.clear();
-  }
-
-  void insert(const Eigen::Vector4f& p, uint32_t label) {
-    Eigen::Vector4f tp = p - offset_;
-    int32_t i = std::floor(tp.x() / resolution_);
-    int32_t j = std::floor(tp.y() / resolution_);
-    int32_t k = std::floor(tp.z() / resolution_);
-
-    if ((i >= int32_t(sizex_)) || (j >= int32_t(sizey_)) || (k >= int32_t(sizez_))) return;
-    if ((i < 0) || (j < 0) || (k < 0)) return;
-
-    int32_t gidx = i + j * sizex_ + k * sizex_ * sizey_;
-    if (gidx < 0 || gidx >= int32_t(voxels_.size())) return;
-
-    occupied_.push_back(gidx);
-
-    //    float n = voxels_[gidx].count;
-    voxels_[gidx].labels[label] += 1;  //(1. / (n + 1)) * (n * voxels_[gidx].point + p);
-    voxels_[gidx].count += 1;
-  }
-
+  /** \brief add label for specific point to voxel grid **/
+  void insert(const Eigen::Vector4f& p, uint32_t label);
+  /** \brief get  all voxels. **/
   const std::vector<Voxel>& voxels() const { return voxels_; }
 
   const Eigen::Vector4f& offset() const { return offset_; }
 
+  /** \brief get size in specific dimension **/
   uint32_t size(uint32_t dim) const { return (&sizex_)[std::max<uint32_t>(std::min<uint32_t>(dim, 3), 0)]; }
 
+  /** \brief resolutions aka sidelength of a voxel **/
   float resolution() const { return resolution_; }
 
+  /** \brief check for each voxel if  there is voxel occluding the voxel. **/
+  void updateOcclusions();
+
+  /** \brief fill occluded areas with labels. **/
+  void insertOcclusionLabels();
+
+  /** \brief get if voxel at (i,j,k) is occluded.
+   *  Assumes that updateOcclusions has been called before,
+   *
+   *  \see updateOcclusions
+   **/
+  bool isOccluded(int32_t i, int32_t j, int32_t k) const;
+  /** \brief get if voxel at (i,j,k) is free.
+   *  Assumes that updateOcclusions has been called before,
+   *
+   *  \see updateOcclusions
+   **/
+  bool isFree(int32_t i, int32_t j, int32_t k) const;
+
+  /** \brief check if given voxel is occluded.
+   *
+   *
+   *  \return index of voxel that occludes given voxel, -1  if voxel is not occluded.
+   **/
+  int32_t occludedBy(int32_t i, int32_t j, int32_t k, std::vector<Eigen::Vector3i>* visited = nullptr) const;
+
  protected:
+  /** \brief get position of voxel center. **/
+  inline Eigen::Vector3f voxel2position(int32_t i, int32_t j, int32_t k) const {
+    return Eigen::Vector3f(offset_[0] + i * resolution_ + 0.5 * resolution_,
+                           offset_[1] + j * resolution_ + 0.5 * resolution_,
+                           offset_[2] + k * resolution_ + 0.5 * resolution_);
+  }
+
+  inline Eigen::Vector3i position2voxel(const Eigen::Vector3f& pos) const {
+    return Eigen::Vector3i((pos[0] - offset_[0]) / resolution_, (pos[1] - offset_[1]) / resolution_,
+                           (pos[2] - offset_[2]) / resolution_);
+  }
+
+  inline int32_t index(int32_t i, int32_t j, int32_t k) const { return i + j * sizex_ + k * sizex_ * sizey_; }
+
   float resolution_;
 
   uint32_t sizex_, sizey_, sizez_;
@@ -88,6 +91,10 @@ class VoxelGrid {
   std::vector<uint32_t> occupied_;
 
   Eigen::Vector4f offset_;
+
+  std::vector<int32_t> occlusions_;  // filled by updateOcclusions.
+  bool occlusionsValid_{false};
+  std::vector<uint32_t> occluded_;  // filled by updateOcclusions.
 };
 
 #endif /* SRC_DATA_VOXELGRID_H_ */

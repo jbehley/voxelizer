@@ -66,6 +66,7 @@ add_executable(voxelizer
   
   src/data/label_utils.cpp
   src/data/kitti_utils.cpp
+  src/data/VoxelGrid.cpp
   src/rv/string_utils.cpp
   src/rv/Stopwatch.cpp
   src/data/misc.cpp

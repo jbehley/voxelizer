@@ -72,6 +72,9 @@
             setCurrentScanIdx(ui.sldTimeline->value());
           });
 
+  connect(ui.chkShowOccluded, &QCheckBox::toggled,
+          [this](bool value) { ui.mViewportXYZ->setDrawingOption("show occluded", value); });
+
   /** load labels and colors **/
   std::map<uint32_t, std::string> label_names;
   std::map<uint32_t, glow::GlColor> label_colors;
@@ -84,6 +87,7 @@
   readConfig();
 
   ui.mViewportXYZ->setFilteredLabels(filteredLabels);
+  ui.mViewportXYZ->setDrawingOption("highlight voxels", false);
 
   reader_.setNumPastScans(ui.spinPastScans->value());
   reader_.setNumPriorScans(ui.spinPriorScans->value());
@@ -243,6 +247,7 @@ void Mainframe::save() {
 void Mainframe::unsavedChanges() { mChangesSinceLastSave = true; }
 
 void Mainframe::setCurrentScanIdx(int32_t idx) {
+  std::cout << "setCurrentScanIdx(" << idx << ")" << std::endl;
   readerFuture_ = std::async(std::launch::async, &Mainframe::readAsync, this, idx);
 
   ui.sldTimeline->setEnabled(false);
@@ -300,13 +305,24 @@ void Mainframe::buildVoxelGrids() {
 
     fillVoxelGrid(anchor_pose, priorPoints_, priorLabels_, pastVoxelGrid_);
     fillVoxelGrid(anchor_pose, pastPoints_, pastLabels_, pastVoxelGrid_);
-  }
 
-  priorVoxels_.clear();
-  pastVoxels_.clear();
-  // extract voxels and labels.
-  extractLabeledVoxels(priorVoxelGrid_, priorVoxels_);
-  extractLabeledVoxels(pastVoxelGrid_, pastVoxels_);
+    priorVoxels_.clear();
+    pastVoxels_.clear();
+
+    // updating occlusions.
+    std::cout << "updating occlusions." << std::endl;
+    priorVoxelGrid_.updateOcclusions();
+    pastVoxelGrid_.updateOcclusions();
+
+    priorVoxelGrid_.insertOcclusionLabels();
+    pastVoxelGrid_.insertOcclusionLabels();
+
+    // extract voxels and labels.
+    extractLabeledVoxels(priorVoxelGrid_, priorVoxels_);
+    extractLabeledVoxels(pastVoxelGrid_, pastVoxels_);
+
+    std::cout << "end" << std::endl;
+  }
 
   emit buildVoxelgridFinished();
 }
@@ -314,6 +330,48 @@ void Mainframe::buildVoxelGrids() {
 void Mainframe::updateVoxelGrids() {
   ui.mViewportXYZ->setVoxelGridProperties(std::max<float>(0.01, ui.spinVoxelSize->value()), priorVoxelGrid_.offset());
   ui.mViewportXYZ->setVoxels(priorVoxels_, pastVoxels_);
+
+  if (visited_.size() > 0) {
+    std::vector<LabeledVoxel> voxels;
+    float voxelSize = priorVoxelGrid_.resolution();
+    Eigen::Vector4f offset = priorVoxelGrid_.offset();
+
+    for (uint32_t i = 0; i < visited_.size(); ++i) {
+      LabeledVoxel lv;
+      Eigen::Vector4f pos = offset + Eigen::Vector4f(visited_[i].x() * voxelSize, visited_[i].y() * voxelSize,
+                                                     visited_[i].z() * voxelSize, 0.0f);
+      lv.position = vec3(pos.x(), pos.y(), pos.z());
+      lv.label = 11;
+      voxels.push_back(lv);
+    }
+
+    ui.mViewportXYZ->highlightVoxels(voxels);
+  }
+
+  updateOccludedVoxels();
+}
+
+void Mainframe::updateOccludedVoxels() {
+  VoxelGrid& grid = (ui.rdoTrainVoxels->isChecked()) ? priorVoxelGrid_ : pastVoxelGrid_;
+  std::vector<LabeledVoxel> voxels;
+  float voxelSize = grid.resolution();
+  Eigen::Vector4f offset = grid.offset();
+
+  for (uint32_t x = 0; x < grid.size(0); ++x) {
+    for (uint32_t y = 0; y < grid.size(1); ++y) {
+      for (uint32_t z = 0; z < grid.size(2); ++z) {
+        if (!grid.isOccluded(x, y, z)) continue;
+        LabeledVoxel lv;
+        Eigen::Vector4f pos =
+            offset + Eigen::Vector4f(x * voxelSize + 0.1, y * voxelSize + 0.1, z * voxelSize + 0.1, 0.0f);
+        lv.position = vec3(pos.x(), pos.y(), pos.z());
+        lv.label = 11;
+        voxels.push_back(lv);
+      }
+    }
+  }
+
+  ui.mViewportXYZ->setOcclusionVoxels(voxels);
 }
 
 void Mainframe::fillVoxelGrid(const Eigen::Matrix4f& anchor_pose, const std::vector<PointcloudPtr>& points,
