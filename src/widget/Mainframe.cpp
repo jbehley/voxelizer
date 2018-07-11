@@ -168,20 +168,11 @@ void Mainframe::open() {
   }
 }
 
-
-void Mainframe::save() {
-  // TODO: write appropriate ccontet of voxel grid to file!
-  std::cout << "Save button pressed" << std::endl;
-    
-  // Get global variables
-  VoxelGrid grid  = pastVoxelGrid_;
-  //   LabeledVoxel voxels = pastVoxels_;
-
+void Mainframe::saveVoxelGrid(const VoxelGrid& grid, const char* filename){
   std::cout << "Save current voxel gid" << std::endl;
-  // Example:
+
   Eigen::Vector4f offset = grid.offset();
   float voxelSize = grid.resolution();
-  
 
   int Nx = grid.size(0);
   int Ny = grid.size(1);
@@ -214,8 +205,7 @@ void Mainframe::save() {
           }
         }
 
-        // write maxLabel appropriately to file.
-	// std::cout << "maxLabel at " << x << ", " << y << ", " << z << " is " << maxLabel << std::endl;
+        // Write maxLabel appropriately to file.
 	counter = counter + 1;
         outputTensor[counter] = maxLabel;
         
@@ -223,8 +213,6 @@ void Mainframe::save() {
     }
   }
   std::cout << "Counter = " << counter << std::endl;
-  // Create ouput variable:
-  const char* filename = "outputFilename.mat";
 
   // Save 1D-outputTensor as mat file
   mat_t * matfp = Mat_CreateVer(filename, NULL, MAT_FT_MAT5); //or MAT_FT_MAT4 / MAT_FT_MAT73
@@ -235,8 +223,21 @@ void Mainframe::save() {
   Mat_VarFree(variable);
 
   Mat_Close(matfp);
-  
   std::cout << "Done" << std::endl;
+}
+
+void Mainframe::save() {
+  // TODO: write appropriate ccontet of voxel grid to file!
+  std::cout << "Save button pressed" << std::endl;
+    
+  const char* fnameInput = "input.mat";
+  const char* fnameLabels = "labels.mat";
+  saveVoxelGrid(priorVoxelGrid_, fnameInput);
+  saveVoxelGrid(pastVoxelGrid_, fnameLabels);
+  
+  VoxelGrid grid  = priorVoxelGrid_;  // input
+  VoxelGrid grid_labels  = pastVoxelGrid_;   // labels
+
 }
 
 void Mainframe::unsavedChanges() { mChangesSinceLastSave = true; }

@@ -106,6 +106,8 @@ class Mainframe : public QMainWindow {
 
 
   float minRange, maxRange;
+  
+  void saveVoxelGrid(const VoxelGrid& grid, const char* filename);
 };
 
 #endif /* MAINFRAME_H_ */
