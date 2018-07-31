@@ -108,6 +108,8 @@ class Mainframe : public QMainWindow {
   Eigen::Vector4f maxExtent;
 
   float minRange, maxRange;
+  
+  void saveVoxelGrid(const VoxelGrid& grid, const char* filename);
 };
 
 #endif /* MAINFRAME_H_ */

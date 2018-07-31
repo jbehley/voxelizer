@@ -25,7 +25,7 @@ if(catkin_FOUND)
   )
 endif()
 
-include_directories(${catkin_INCLUDE_DIRS} src/ ${QT5_INCLUDE_DIRS} ${GLEW_INCLUDE_DIRS} /usr/include/eigen3)
+include_directories(${catkin_INCLUDE_DIRS} src/ ${QT5_INCLUDE_DIRS} ${GLEW_INCLUDE_DIRS} /usr/include/eigen3 /usr/local/include)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON) # needs to be activated for qt generated files in build directory.
 set(CMAKE_AUTOMOC ON)
@@ -80,5 +80,5 @@ add_executable(voxelizer
 
 
 
-target_link_libraries(voxelizer ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} pthread Qt5::Xml Qt5::OpenGL Qt5::Widgets)
+target_link_libraries(voxelizer ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} pthread Qt5::Xml Qt5::OpenGL Qt5::Widgets matio)
 

@@ -1,24 +1,27 @@
-#include "Mainframe.h"
-
-#include <fstream>
-#include <iostream>
-#include <map>
-
-#include <QtCore/QDir>
-#include <QtCore/QFile>
-#include <QtCore/QFileInfo>
-#include <QtWidgets/QFileDialog>
-
-#include "../data/label_utils.h"
-#include "../data/misc.h"
-
-#include <QtWidgets/QMessageBox>
-
-#include <boost/lexical_cast.hpp>
-
-using namespace glow;
-
-Mainframe::Mainframe() : mChangesSinceLastSave(false) {
+  #include "Mainframe.h"
+  
+  #include <fstream>
+  #include <iostream>
+  #include <map>
+  
+  #include <QtCore/QDir>
+  #include <QtCore/QFile>
+  #include <QtCore/QFileInfo>
+  #include <QtWidgets/QFileDialog>
+  
+  #include "../data/label_utils.h"
+  #include "../data/misc.h"
+  
+  #include <QtWidgets/QMessageBox>
+  
+  #include <boost/lexical_cast.hpp>
+  
+  #include <matio.h>
+  
+  using namespace glow;
+  
+  
+  Mainframe::Mainframe() : mChangesSinceLastSave(false) {
   ui.setupUi(this);
 
   connect(ui.actionOpen, SIGNAL(triggered()), this, SLOT(open()));
@@ -169,33 +172,146 @@ void Mainframe::open() {
   }
 }
 
+
+void Mainframe::saveVoxelGrid(const VoxelGrid& grid, const char* filename){
+  std::cout << "Save occlusion mask" << std::endl;
+
+  Eigen::Vector4f offset = grid.offset();
+  float voxelSize = grid.resolution();
+
+  int Nx = grid.size(0);
+  int Ny = grid.size(1);
+  int Nz = grid.size(2);
+  
+  std::cout << "Nx = " << Nx << std::endl;
+  std::cout << "Ny = " << Ny << std::endl;
+  std::cout << "Nz = " << Nz << std::endl;
+
+  size_t numElements = Nx * Ny * Nz;
+  uint32_t *outputTensor = new uint32_t[numElements];
+  memset(outputTensor, 0, numElements * sizeof(outputTensor[0]));
+  uint32_t *outputTensorOccluded = new uint32_t[numElements];
+  memset(outputTensorOccluded, 0, numElements * sizeof(outputTensorOccluded[0]));
+  
+  std::cout << "numElements = " << numElements << std::endl;
+
+  int counter = 0;
+  for (uint32_t x = 0; x < grid.size(0); ++x) {
+    for (uint32_t y = 0; y < grid.size(1); ++y) {
+      for (uint32_t z = 0; z < grid.size(2); ++z) {
+        const VoxelGrid::Voxel& v = grid(x, y, z);
+        
+        uint32_t isOccluded = (uint32_t) grid.isOccluded(x, y, z);
+
+        uint32_t maxCount = 0;
+        uint32_t maxLabel = 0;
+
+        for (auto it = v.labels.begin(); it != v.labels.end(); ++it) {
+          if (it->second > maxCount) {
+            maxCount = it->second;
+            maxLabel = it->first;
+          }
+        }
+
+        // Write maxLabel appropriately to file.
+	counter = counter + 1;
+        outputTensor[counter] = maxLabel;
+        outputTensorOccluded[counter] = isOccluded;
+        
+      }
+    }
+  }
+  std::cout << "Counter = " << counter << std::endl;
+
+  // Save 1D-outputTensor as mat file
+  mat_t * matfp = Mat_CreateVer(filename, NULL, MAT_FT_MAT5); //or MAT_FT_MAT4 / MAT_FT_MAT73
+  size_t dim[1] = { numElements };
+  
+  char* fieldname_data = "data";
+  matvar_t *variable_data = Mat_VarCreate(fieldname_data, MAT_C_INT32, MAT_T_INT32, 1, dim, outputTensor, 0);
+  Mat_VarWrite(matfp, variable_data, MAT_COMPRESSION_NONE); //or MAT_COMPRESSION_ZLIB
+  
+  char* fieldname_mask = "mask";
+  matvar_t *variable_mask = Mat_VarCreate(fieldname_mask, MAT_C_INT32, MAT_T_INT32, 1, dim, outputTensorOccluded, 0);
+  Mat_VarWrite(matfp, variable_mask, MAT_COMPRESSION_NONE); //or MAT_COMPRESSION_ZLIB      
+  
+ 
+  Mat_VarFree(variable_data);
+  Mat_VarFree(variable_mask);
+
+  Mat_Close(matfp);
+  std::cout << "Done" << std::endl;
+}
+
+
+// void Mainframe::saveVoxelGrid(const VoxelGrid& grid, const char* filename){
+//   std::cout << "Save current voxel gid" << std::endl;
+// 
+//   Eigen::Vector4f offset = grid.offset();
+//   float voxelSize = grid.resolution();
+// 
+//   int Nx = grid.size(0);
+//   int Ny = grid.size(1);
+//   int Nz = grid.size(2);
+//   
+//   std::cout << "Nx = " << Nx << std::endl;
+//   std::cout << "Ny = " << Ny << std::endl;
+//   std::cout << "Nz = " << Nz << std::endl;
+// 
+//   size_t numElements = Nx * Ny * Nz;
+//   uint32_t *outputTensor = new uint32_t[numElements];
+//   memset(outputTensor, 0, numElements * sizeof(outputTensor[0]));
+//   
+//   std::cout << "numElements = " << numElements << std::endl;
+// 
+//   int counter = 0;
+//   for (uint32_t x = 0; x < grid.size(0); ++x) {
+//     for (uint32_t y = 0; y < grid.size(1); ++y) {
+//       for (uint32_t z = 0; z < grid.size(2); ++z) {
+//         const VoxelGrid::Voxel& v = grid(x, y, z);
+// 
+// 
+//         uint32_t maxCount = 0;
+//         uint32_t maxLabel = 0;
+// 
+//         for (auto it = v.labels.begin(); it != v.labels.end(); ++it) {
+//           if (it->second > maxCount) {
+//             maxCount = it->second;
+//             maxLabel = it->first;
+//           }
+//         }
+// 
+//         // Write maxLabel appropriately to file.
+// 	counter = counter + 1;
+//         outputTensor[counter] = maxLabel;
+//         
+//       }
+//     }
+//   }
+//   std::cout << "Counter = " << counter << std::endl;
+// 
+//   // Save 1D-outputTensor as mat file
+//   mat_t * matfp = Mat_CreateVer(filename, NULL, MAT_FT_MAT5); //or MAT_FT_MAT4 / MAT_FT_MAT73
+//   char* fieldname = "data";
+//   size_t dim[1] = { numElements };
+//   matvar_t *variable = Mat_VarCreate(fieldname, MAT_C_INT32, MAT_T_INT32, 1, dim, outputTensor, 0);
+//   Mat_VarWrite(matfp, variable, MAT_COMPRESSION_NONE); //or MAT_COMPRESSION_ZLIB
+//   
+//   Mat_VarFree(variable);
+// 
+//   Mat_Close(matfp);
+//   std::cout << "Done" << std::endl;
+// }
+
 void Mainframe::save() {
   // TODO: write appropriate ccontet of voxel grid to file!
-
-  // Example:
-  //  Eigen::Vector4f offset = grid.offset();
-  //  float voxelSize = grid.resolution();
-  //
-  //  for (uint32_t x = 0; x < grid.size(0); ++x) {
-  //    for (uint32_t y = 0; y < grid.size(1); ++y) {
-  //      for (uint32_t z = 0; z < grid.size(2); ++z) {
-  //        const VoxelGrid::Voxel& v = grid(x, y, z);
-  //
-  //
-  //        uint32_t maxCount = 0;
-  //        uint32_t maxLabel = 0;
-  //
-  //        for (auto it = v.labels.begin(); it != v.labels.end(); ++it) {
-  //          if (it->second > maxCount) {
-  //            maxCount = it->second;
-  //            maxLabel = it->first;
-  //          }
-  //        }
-  //
-  //        // write maxLabel appropriately to file.
-  //      }
-  //    }
-  //  }
+  std::cout << "Save button pressed" << std::endl;
+    
+  const char* fnameInput = "input.mat";
+  const char* fnameLabels = "labels.mat";
+  saveVoxelGrid(priorVoxelGrid_, fnameInput);
+  saveVoxelGrid(pastVoxelGrid_, fnameLabels);
+  
 }
 
 void Mainframe::unsavedChanges() { mChangesSinceLastSave = true; }
