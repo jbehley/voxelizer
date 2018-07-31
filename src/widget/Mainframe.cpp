@@ -73,6 +73,8 @@ Mainframe::Mainframe() : mChangesSinceLastSave(false) {
 
   connect(ui.chkShowOccluded, &QCheckBox::toggled,
           [this](bool value) { ui.mViewportXYZ->setDrawingOption("show occluded", value); });
+  connect(ui.chkShowInvalid, &QCheckBox::toggled,
+          [this](bool value) { ui.mViewportXYZ->setDrawingOption("show invalid", value); });
 
   /** load labels and colors **/
   std::map<uint32_t, std::string> label_names;
@@ -183,7 +185,7 @@ void Mainframe::saveVoxelGrid(const VoxelGrid& grid, const std::string& filename
   //  std::cout << "Ny = " << Ny << std::endl;
   //  std::cout << "Nz = " << Nz << std::endl;
 
-  size_t numElements = Nx * Ny * Nz;
+  size_t numElements = grid.num_elements();
   std::vector<uint32_t> outputTensor(numElements, 0);
   std::vector<uint32_t> outputTensorOccluded(numElements, 0);
 
@@ -239,7 +241,8 @@ void Mainframe::save() {
 void Mainframe::unsavedChanges() { mChangesSinceLastSave = true; }
 
 void Mainframe::setCurrentScanIdx(int32_t idx) {
-  //  std::cout << "setCurrentScanIdx(" << idx << ")" << std::endl;
+  std::cout << "setCurrentScanIdx(" << idx << ")" << std::endl;
+  if (reader_.count() == 0) return;
   readerFuture_ = std::async(std::launch::async, &Mainframe::readAsync, this, idx);
 
   ui.sldTimeline->setEnabled(false);
@@ -313,6 +316,32 @@ void Mainframe::buildVoxelGrids() {
     extractLabeledVoxels(priorVoxelGrid_, priorVoxels_);
     extractLabeledVoxels(pastVoxelGrid_, pastVoxels_);
 
+    // update invalid voxels. All voxels with values  > -1 are always occluded.
+    invalidVoxels_ = std::vector<int32_t>(pastVoxelGrid_.num_elements(), -1);
+
+    // iterate over all voxels and update invalid mask:
+    for (uint32_t x = 0; x < pastVoxelGrid_.size(0); ++x) {
+      for (uint32_t y = 0; y < pastVoxelGrid_.size(1); ++y) {
+        for (uint32_t z = 0; z < pastVoxelGrid_.size(2); ++z) {
+          int32_t idx = pastVoxelGrid_.index(x, y, z);
+          invalidVoxels_[idx] = pastVoxelGrid_.occludedBy(x, y, z);
+        }
+      }
+    }
+
+    for (uint32_t i = 0; i < pastPoints_.size(); ++i) {
+      Eigen::Vector3f endpoint = (anchor_pose.inverse() * pastPoints_[i]->pose).col(3).head(3);
+      for (uint32_t x = 0; x < pastVoxelGrid_.size(0); ++x) {
+        for (uint32_t y = 0; y < pastVoxelGrid_.size(1); ++y) {
+          for (uint32_t z = 0; z < pastVoxelGrid_.size(2); ++z) {
+            int32_t idx = pastVoxelGrid_.index(x, y, z);
+            // idea: if voxel is not occluded, the value should be -1.
+            invalidVoxels_[idx] = std::min<int32_t>(invalidVoxels_[idx], pastVoxelGrid_.occludedBy(x, y, z, endpoint));
+          }
+        }
+      }
+    }
+
     //    std::cout << "end" << std::endl;
   }
 
@@ -341,6 +370,7 @@ void Mainframe::updateVoxelGrids() {
   }
 
   updateOccludedVoxels();
+  updateInvalidVoxels();
 }
 
 void Mainframe::updateOccludedVoxels() {
@@ -364,6 +394,32 @@ void Mainframe::updateOccludedVoxels() {
   }
 
   ui.mViewportXYZ->setOcclusionVoxels(voxels);
+}
+
+void Mainframe::updateInvalidVoxels() {
+  if (invalidVoxels_.size() > 0) {
+    std::vector<LabeledVoxel> voxels;
+
+    float voxelSize = pastVoxelGrid_.resolution();
+    Eigen::Vector4f offset = pastVoxelGrid_.offset();
+
+    for (uint32_t x = 0; x < pastVoxelGrid_.size(0); ++x) {
+      for (uint32_t y = 0; y < pastVoxelGrid_.size(1); ++y) {
+        for (uint32_t z = 0; z < pastVoxelGrid_.size(2); ++z) {
+          if (invalidVoxels_[pastVoxelGrid_.index(x, y, z)] == -1) continue;
+          if (invalidVoxels_[pastVoxelGrid_.index(x, y, z)] == pastVoxelGrid_.index(x, y, z)) continue;
+          LabeledVoxel lv;
+          Eigen::Vector4f pos =
+              offset + Eigen::Vector4f(x * voxelSize + 0.1, y * voxelSize + 0.1, z * voxelSize + 0.1, 0.0f);
+          lv.position = vec3(pos.x(), pos.y(), pos.z());
+          lv.label = 11;
+          voxels.push_back(lv);
+        }
+      }
+    }
+
+    ui.mViewportXYZ->setInvalidVoxels(voxels);
+  }
 }
 
 void Mainframe::fillVoxelGrid(const Eigen::Matrix4f& anchor_pose, const std::vector<PointcloudPtr>& points,

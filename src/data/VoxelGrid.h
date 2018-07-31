@@ -37,6 +37,8 @@ class VoxelGrid {
 
   const Eigen::Vector4f& offset() const { return offset_; }
 
+  uint32_t num_elements() const { return sizex_ * sizey_ * sizez_; }
+
   /** \brief get size in specific dimension **/
   uint32_t size(uint32_t dim) const { return (&sizex_)[std::max<uint32_t>(std::min<uint32_t>(dim, 3), 0)]; }
 
@@ -64,12 +66,17 @@ class VoxelGrid {
 
   /** \brief check if given voxel is occluded.
    *
+   *  \param i,j,k        voxel indexes
+   *  \param endpoint     end point of ray (optional)
+   *  \param visited      visited voxel indexes.
+   *
+   *  traces a ray from the voxel to the given endpoint.
    *
    *  \return index of voxel that occludes given voxel, -1  if voxel is not occluded.
    **/
-  int32_t occludedBy(int32_t i, int32_t j, int32_t k, std::vector<Eigen::Vector3i>* visited = nullptr) const;
+  int32_t occludedBy(int32_t i, int32_t j, int32_t k, const Eigen::Vector3f& endpoint = Eigen::Vector3f::Zero(),
+                     std::vector<Eigen::Vector3i>* visited = nullptr) const;
 
- protected:
   /** \brief get position of voxel center. **/
   inline Eigen::Vector3f voxel2position(int32_t i, int32_t j, int32_t k) const {
     return Eigen::Vector3f(offset_[0] + i * resolution_ + 0.5 * resolution_,
@@ -84,6 +91,7 @@ class VoxelGrid {
 
   inline int32_t index(int32_t i, int32_t j, int32_t k) const { return i + j * sizex_ + k * sizex_ * sizey_; }
 
+ protected:
   float resolution_;
 
   uint32_t sizex_, sizey_, sizez_;

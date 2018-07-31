@@ -65,6 +65,7 @@ class Viewport : public QGLWidget {
   void highlightVoxels(const std::vector<LabeledVoxel>& voxels);
 
   void setOcclusionVoxels(const std::vector<LabeledVoxel>& voxels);
+  void setInvalidVoxels(const std::vector<LabeledVoxel>& voxels);
  signals:
   void labelingChanged();
 
@@ -163,6 +164,7 @@ class Viewport : public QGLWidget {
   glow::GlBuffer<LabeledVoxel> bufPastVoxels_{glow::BufferTarget::ARRAY_BUFFER, glow::BufferUsage::DYNAMIC_DRAW};
   glow::GlBuffer<LabeledVoxel> bufHighlightedVoxels_{glow::BufferTarget::ARRAY_BUFFER, glow::BufferUsage::DYNAMIC_DRAW};
   glow::GlBuffer<LabeledVoxel> bufOccludedVoxels_{glow::BufferTarget::ARRAY_BUFFER, glow::BufferUsage::DYNAMIC_DRAW};
+  glow::GlBuffer<LabeledVoxel> bufInvalidVoxels_{glow::BufferTarget::ARRAY_BUFFER, glow::BufferUsage::DYNAMIC_DRAW};
 
   glow::GlTextureRectangle texLabelColors_;
 
@@ -172,6 +174,7 @@ class Viewport : public QGLWidget {
   glow::GlVertexArray vao_past_voxels_;
   glow::GlVertexArray vao_highlighted_voxels_;
   glow::GlVertexArray vao_occluded_voxels_;
+  glow::GlVertexArray vao_invalid_voxels_;
 
   glow::GlProgram prgDrawPose_;
   glow::GlProgram prgDrawPoints_;

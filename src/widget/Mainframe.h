@@ -55,6 +55,9 @@ class Mainframe : public QMainWindow {
 
   void updateOccludedVoxels();
 
+  /** \brief determine invalid voxels. **/
+  void updateInvalidVoxels();
+
   /** \brief voxels into .mat file. **/
   void saveVoxelGrid(const VoxelGrid& grid, const std::string& filename);
 
@@ -106,6 +109,8 @@ class Mainframe : public QMainWindow {
   std::vector<LabeledVoxel> priorVoxels_;
   std::vector<LabeledVoxel> pastVoxels_;
   std::vector<Eigen::Vector3i> visited_;
+
+  std::vector<int32_t> invalidVoxels_;
 
   Eigen::Vector4f minExtent;
   Eigen::Vector4f maxExtent;

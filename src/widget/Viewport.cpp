@@ -99,6 +99,11 @@ void Viewport::initVertexBuffers() {
                                           reinterpret_cast<GLvoid*>(0));
   vao_occluded_voxels_.setVertexAttribute(1, bufOccludedVoxels_, 1, AttributeType::UNSIGNED_INT, false,
                                           sizeof(LabeledVoxel), reinterpret_cast<GLvoid*>(sizeof(glow::vec3)));
+
+  vao_invalid_voxels_.setVertexAttribute(0, bufInvalidVoxels_, 3, AttributeType::FLOAT, false, sizeof(LabeledVoxel),
+                                         reinterpret_cast<GLvoid*>(0));
+  vao_invalid_voxels_.setVertexAttribute(1, bufInvalidVoxels_, 1, AttributeType::UNSIGNED_INT, false,
+                                         sizeof(LabeledVoxel), reinterpret_cast<GLvoid*>(sizeof(glow::vec3)));
 }
 
 void Viewport::setMaximumScans(uint32_t numScans) {
@@ -462,6 +467,25 @@ void Viewport::paintGL() {
     vao_occluded_voxels_.release();
   }
 
+  if (drawingOption_["show invalid"]) {
+    ScopedBinder<GlProgram> program_binder(prgDrawVoxels_);
+
+    mvp_ = projection_ * view_ * conversion_;
+    prgDrawVoxels_.setUniform(mvp_);
+    prgDrawVoxels_.setUniform(GlUniform<vec3>("lightPos", vec3(-10, 0, 10)));
+    Eigen::Vector4f viewpos_rose = conversion_.inverse() * mCamera.getPosition();
+    prgDrawVoxels_.setUniform(GlUniform<bool>("use_custom_color", true));
+    prgDrawVoxels_.setUniform(GlUniform<float>("voxelSize", voxelSize_ - 0.2));
+    prgDrawVoxels_.setUniform(GlUniform<vec3>("viewPos", vec3(viewpos_rose.x(), viewpos_rose.y(), viewpos_rose.z())));
+    prgDrawVoxels_.setUniform(GlUniform<vec4>("custom_color", vec4(0.3, 0.3, 0.3, 1.0f)));
+
+    vao_invalid_voxels_.bind();
+
+    glDrawArrays(GL_POINTS, 0, bufInvalidVoxels_.size());
+
+    vao_invalid_voxels_.release();
+  }
+
   glow::_CheckGlError(__FILE__, __LINE__);
 }
 
@@ -553,4 +577,9 @@ glow::GlCamera::MouseButton Viewport::resolveMouseButton(Qt::MouseButtons button
     btn = GlCamera::MouseButton::MiddleButton;
 
   return btn;
+}
+
+void Viewport::setInvalidVoxels(const std::vector<LabeledVoxel>& voxels) {
+  bufInvalidVoxels_.assign(voxels);
+  updateGL();
 }

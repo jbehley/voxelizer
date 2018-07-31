@@ -95,7 +95,8 @@ void VoxelGrid::updateOcclusions() {
   occlusionsValid_ = true;
 }
 
-int32_t VoxelGrid::occludedBy(int32_t i, int32_t j, int32_t k, std::vector<Eigen::Vector3i>* visited) const {
+int32_t VoxelGrid::occludedBy(int32_t i, int32_t j, int32_t k, const Eigen::Vector3f& endpoint,
+                              std::vector<Eigen::Vector3i>* visited) const {
   float NextCrossingT[3], DeltaT[3]; /** t for next intersection with voxel boundary of axis, t increment for axis
   **/
   int32_t Step[3], Out[3], Pos[3];   /** voxel increment for axis, index of of outside voxels, current position **/
@@ -112,13 +113,9 @@ int32_t VoxelGrid::occludedBy(int32_t i, int32_t j, int32_t k, std::vector<Eigen
 
   double halfResolution = 0.5 * resolution_;
 
-  //  startpoint[0] += halfResolution;
-  //  startpoint[1] += halfResolution;
-  //  startpoint[2] += halfResolution;
-
-  dir[0] = -startpoint[0];
-  dir[1] = -startpoint[1];
-  dir[2] = -startpoint[2];
+  dir[0] = endpoint[0] - startpoint[0];
+  dir[1] = endpoint[1] - startpoint[1];
+  dir[2] = endpoint[2] - startpoint[2];
 
   /** initialize variables for traversal **/
   for (uint32_t axis = 0; axis < 3; ++axis) {
@@ -135,7 +132,6 @@ int32_t VoxelGrid::occludedBy(int32_t i, int32_t j, int32_t k, std::vector<Eigen
     }
   }
 
-  Eigen::Vector3f endpoint(0, 0, 0);
   Eigen::Vector3i endindexes = position2voxel(endpoint);
   int32_t i_end = endindexes[0];
   int32_t j_end = endindexes[1];
