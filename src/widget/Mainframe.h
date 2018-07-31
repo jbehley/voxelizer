@@ -55,6 +55,9 @@ class Mainframe : public QMainWindow {
 
   void updateOccludedVoxels();
 
+  /** \brief voxels into .mat file. **/
+  void saveVoxelGrid(const VoxelGrid& grid, const std::string& filename);
+
   void activateSpinner();
 
   void forward();
@@ -108,8 +111,6 @@ class Mainframe : public QMainWindow {
   Eigen::Vector4f maxExtent;
 
   float minRange, maxRange;
-  
-  void saveVoxelGrid(const VoxelGrid& grid, const char* filename);
 };
 
 #endif /* MAINFRAME_H_ */
