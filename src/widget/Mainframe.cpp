@@ -14,7 +14,6 @@
 
 #include <QtWidgets/QMessageBox>
 
-#include <boost/lexical_cast.hpp>
 #include "../data/voxelize_utils.h"
 
 using namespace glow;
@@ -84,23 +83,32 @@ Mainframe::Mainframe() : mChangesSinceLastSave(false) {
 
   ui.mViewportXYZ->setLabelColors(label_colors);
 
-  readConfig();
+  config = parseConfiguration("settings.cfg");
 
   ui.mViewportXYZ->setFilteredLabels(config.filteredLabels);
   ui.mViewportXYZ->setDrawingOption("highlight voxels", false);
 
+  ui.spinPriorScans->setValue(config.priorScans);
+  ui.spinPastScans->setValue(config.pastScans);
+
   reader_.setNumPastScans(ui.spinPastScans->value());
   reader_.setNumPriorScans(ui.spinPriorScans->value());
 
-  // TODO: find reasonable voxel volume size.
-  minExtent = Eigen::Vector4f(0, -20, -2, 1);
-  maxExtent = Eigen::Vector4f(40, 20, 1, 1);
+  //  // TODO: find reasonable voxel volume size.
+  //  minExtent = Eigen::Vector4f(0, -20, -2, 1);
+  //  maxExtent = Eigen::Vector4f(40, 20, 1, 1);
 
-  float voxelSize = ui.spinVoxelSize->value();
-  priorVoxelGrid_.initialize(voxelSize, minExtent, maxExtent);
-  pastVoxelGrid_.initialize(voxelSize, minExtent, maxExtent);
+  //  float voxelSize = ui.spinVoxelSize->value();
+  ui.spinVoxelSize->setValue(config.voxelSize);
+  ui.mViewportXYZ->setMaximumScans(config.maxNumScans);
+  ui.mViewportXYZ->setMaxRange(config.maxRange);
+  ui.spinMaxRange->setValue(config.maxRange);
+  ui.mViewportXYZ->setMinRange(config.minRange);
 
-  ui.mViewportXYZ->setVoxelGridProperties(voxelSize, priorVoxelGrid_.offset());
+  priorVoxelGrid_.initialize(config.voxelSize, config.minExtent, config.maxExtent);
+  pastVoxelGrid_.initialize(config.voxelSize, config.minExtent, config.maxExtent);
+
+  ui.mViewportXYZ->setVoxelGridProperties(config.voxelSize, priorVoxelGrid_.offset());
 }
 
 Mainframe::~Mainframe() {}
@@ -384,8 +392,8 @@ void Mainframe::updateScans() {
 
 void Mainframe::updateVoxelSize(float voxelSize) {
   voxelSize = std::max<float>(0.01, voxelSize);
-  priorVoxelGrid_.initialize(voxelSize, minExtent, maxExtent);
-  pastVoxelGrid_.initialize(voxelSize, minExtent, maxExtent);
+  priorVoxelGrid_.initialize(voxelSize, config.minExtent, config.maxExtent);
+  pastVoxelGrid_.initialize(voxelSize, config.minExtent, config.maxExtent);
 
   readerFuture_ = std::async(std::launch::async, &Mainframe::buildVoxelGrids, this);
 }
@@ -403,51 +411,7 @@ void Mainframe::backward() {
   ui.btnForward->setEnabled(true);
   if (value == 0) ui.btnBackward->setEnabled(false);
 }
-void Mainframe::readConfig() {
-  std::ifstream in("settings.cfg");
-
-  if (!in.is_open()) return;
-
-  std::string line;
-  in.peek();
-  while (in.good() && !in.eof()) {
-    std::getline(in, line);
-
-    auto tokens = split(line, ":");
-    if (tokens[0] == "max scans") {
-      uint32_t numScans = boost::lexical_cast<uint32_t>(trim(tokens[1]));
-      ui.mViewportXYZ->setMaximumScans(numScans);
-      std::cout << "-- Setting 'max scans' to " << numScans << std::endl;
-    }
-
-    if (tokens[0] == "max range") {
-      float range = boost::lexical_cast<float>(trim(tokens[1]));
-      ui.mViewportXYZ->setMaxRange(range);
-      ui.spinMaxRange->setValue(range);
-      config.maxRange = range;
-
-      std::cout << "-- Setting 'max range' to " << range << std::endl;
-    }
-
-    if (tokens[0] == "min range") {
-      float range = boost::lexical_cast<float>(trim(tokens[1]));
-      ui.mViewportXYZ->setMinRange(range);
-      std::cout << "-- Setting 'min range' to " << range << std::endl;
-
-      config.minRange = range;
-    }
-
-    if (tokens[0] == "ignore") {
-      auto label_tokens = split(tokens[1], ",");
-      for (const auto& token : label_tokens) {
-        uint32_t label = boost::lexical_cast<uint32_t>(trim(token));
-        config.filteredLabels.push_back(label);
-      }
-    }
-  }
-
-  in.close();
-}
+void Mainframe::readConfig() {}
 
 void Mainframe::keyPressEvent(QKeyEvent* event) {
   if (event->key() == Qt::Key_D || event->key() == Qt::Key_Right) {

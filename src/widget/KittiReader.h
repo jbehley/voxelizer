@@ -32,6 +32,8 @@ class KittiReader {
   void retrieve(int32_t idx, std::vector<PointcloudPtr>& priorPoints, std::vector<LabelsPtr>& pirorLabels,
                 std::vector<PointcloudPtr>& pastPoints, std::vector<LabelsPtr>& pastLabels);
 
+  std::vector<Eigen::Matrix4f> poses() const { return poses_; }
+
  protected:
   void readPoints(const std::string& filename, Laserscan& scan);
   void readLabels(const std::string& filename, std::vector<uint32_t>& labels);

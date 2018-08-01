@@ -109,10 +109,8 @@ class Mainframe : public QMainWindow {
 
   std::vector<int32_t> invalidVoxels_;
 
-  Eigen::Vector4f minExtent;
-  Eigen::Vector4f maxExtent;
-
-  //  float minRange, maxRange;
+//  Eigen::Vector4f minExtent;
+//  Eigen::Vector4f maxExtent;
 
   Config config;
 };

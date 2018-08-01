@@ -5,11 +5,8 @@
 
 #include <QtCore/QDir>
 #include "data/voxelize_utils.h"
+#include "rv/string_utils.h"
 #include "widget/KittiReader.h"
-
-Config config;
-
-void parseConfiguration(const std::string& filename) {}
 
 int32_t main(int32_t argc, char** argv) {
   if (argc < 3) {
@@ -18,25 +15,38 @@ int32_t main(int32_t argc, char** argv) {
     return 1;
   }
 
-  parseConfiguration(argv[1]);
+  Config config = parseConfiguration(argv[1]);
 
   std::string input_directory = argv[2];
   std::string output_dirname = "extracted";
   if (argc > 3) output_dirname = argv[3];
 
-  QDir output_dir = QString::fromStdString(output_dirname);
+  QDir output_dir(QString::fromStdString(output_dirname));
+
   if (!output_dir.exists()) {
-    std::cout << "Creating ouput directory" << std::endl;
-    // TODO implement!
+    std::cout << "Creating output directory: " << output_dir.absolutePath().toStdString() << std::endl;
+    if (!output_dir.mkpath(output_dir.absolutePath())) {
+      throw std::runtime_error("Unable to create output directory.");
+    }
+
     return 1;
   }
 
   KittiReader reader;
   reader.initialize(QString::fromStdString(input_directory));
+
+  reader.setNumPriorScans(config.priorScans);
+  reader.setNumPastScans(config.pastScans);
+
   //  uint32_t current = 0;
 
   VoxelGrid priorGrid;
   VoxelGrid pastGrid;
+
+  priorGrid.initialize(config.voxelSize, config.minExtent, config.maxExtent);
+  pastGrid.initialize(config.voxelSize, config.minExtent, config.maxExtent);
+
+  std::vector<Eigen::Matrix4f> poses = reader.poses();
 
   uint32_t current = 0;
 
