@@ -48,6 +48,9 @@ class VoxelGrid {
   /** \brief check for each voxel if  there is voxel occluding the voxel. **/
   void updateOcclusions();
 
+  /** \brief update invalid flags with given position to cast rays for occlusion check. **/
+  void updateInvalid(const Eigen::Vector3f& position);
+
   /** \brief fill occluded areas with labels. **/
   void insertOcclusionLabels();
 
@@ -57,12 +60,20 @@ class VoxelGrid {
    *  \see updateOcclusions
    **/
   bool isOccluded(int32_t i, int32_t j, int32_t k) const;
+
   /** \brief get if voxel at (i,j,k) is free.
    *  Assumes that updateOcclusions has been called before,
    *
    *  \see updateOcclusions
    **/
   bool isFree(int32_t i, int32_t j, int32_t k) const;
+
+  /** \brief get if voxel at (i,j,k) is invalid.
+   *  Assumes that updateInvalid was called with all observation positions.
+   *
+   *  \see updateInvalid.
+   **/
+  bool isInvalid(int32_t i, int32_t j, int32_t k) const;
 
   /** \brief check if given voxel is occluded.
    *
@@ -101,6 +112,7 @@ class VoxelGrid {
   Eigen::Vector4f offset_;
 
   std::vector<int32_t> occlusions_;  // filled by updateOcclusions.
+  std::vector<int32_t> invalid_;
   bool occlusionsValid_{false};
   std::vector<uint32_t> occluded_;  // filled by updateOcclusions.
 };

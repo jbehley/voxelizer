@@ -58,8 +58,8 @@ class Mainframe : public QMainWindow {
   /** \brief determine invalid voxels. **/
   void updateInvalidVoxels();
 
-  /** \brief voxels into .mat file. **/
-  void saveVoxelGrid(const VoxelGrid& grid, const std::string& filename);
+
+//  void saveVoxelGrid(const VoxelGrid& grid, const std::string& filename);
 
   void activateSpinner();
 

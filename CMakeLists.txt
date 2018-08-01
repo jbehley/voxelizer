@@ -76,6 +76,7 @@ add_executable(voxelizer
   src/widget/Mainframe.cpp
   src/widget/Viewport.cpp
   src/widget/KittiReader.cpp
+  src/data/voxelize_utils.cpp
 )
 
 
