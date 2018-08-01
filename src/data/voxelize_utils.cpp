@@ -1,6 +1,25 @@
 #include "voxelize_utils.h"
 
-/** \brief voxels into .mat file. **/
+void fillVoxelGrid(const Eigen::Matrix4f& anchor_pose, const std::vector<PointcloudPtr>& points,
+                   const std::vector<LabelsPtr>& labels, VoxelGrid& grid, const Config& config) {
+  for (uint32_t t = 0; t < points.size(); ++t) {
+    const Eigen::Matrix4f& pose = points[t]->pose;
+    for (uint32_t i = 0; i < points[t]->points.size(); ++i) {
+      const Point3f& pp = points[t]->points[i];
+      float range = Eigen::Vector3f(pp.x, pp.y, pp.z).norm();
+      if (range < config.minRange || range > config.maxRange) continue;
+      bool is_car_point = (pp.x < 3.0 && pp.x > -2.0 && std::abs(pp.y) < 2.0);
+      if (is_car_point) continue;
+
+      Eigen::Vector4f p = anchor_pose.inverse() * pose * Eigen::Vector4f(pp.x, pp.y, pp.z, 1);
+      if (std::find(config.filteredLabels.begin(), config.filteredLabels.end(), (*labels[t])[i]) ==
+          config.filteredLabels.end()) {
+        grid.insert(p, (*labels[t])[i]);
+      }
+    }
+  }
+}
+
 void saveVoxelGrid(const VoxelGrid& grid, const std::string& filename) {
   //  Eigen::Vector4f offset = grid.offset();
   //  float voxelSize = grid.resolution();

@@ -6,11 +6,12 @@
 #include <QtWidgets/QMainWindow>
 #include <future>
 #include "KittiReader.h"
-#include "common.h"
+#include "data/common.h"
 #include "data/geometry.h"
 #include "ui_VoxelizerMainFrame.h"
 
 #include "data/VoxelGrid.h"
+#include "data/voxelize_utils.h"
 
 // TODO: undo.
 
@@ -58,8 +59,7 @@ class Mainframe : public QMainWindow {
   /** \brief determine invalid voxels. **/
   void updateInvalidVoxels();
 
-
-//  void saveVoxelGrid(const VoxelGrid& grid, const std::string& filename);
+  //  void saveVoxelGrid(const VoxelGrid& grid, const std::string& filename);
 
   void activateSpinner();
 
@@ -72,9 +72,6 @@ class Mainframe : public QMainWindow {
 
   void readConfig();
 
-  void fillVoxelGrid(const Eigen::Matrix4f& anchor_pose, const std::vector<PointcloudPtr>& points,
-                     const std::vector<LabelsPtr>& labels, VoxelGrid& grid);
-
   void extractLabeledVoxels(const VoxelGrid& grid, std::vector<LabeledVoxel>& voxels);
 
   std::vector<PointcloudPtr> priorPoints_;
@@ -83,7 +80,7 @@ class Mainframe : public QMainWindow {
   std::vector<PointcloudPtr> pastPoints_;
   std::vector<LabelsPtr> pastLabels_;
 
-  std::vector<uint32_t> filteredLabels;
+//  std::vector<uint32_t> filteredLabels;
   std::string filename;
 
   void keyPressEvent(QKeyEvent* event);
@@ -115,7 +112,9 @@ class Mainframe : public QMainWindow {
   Eigen::Vector4f minExtent;
   Eigen::Vector4f maxExtent;
 
-  float minRange, maxRange;
+  //  float minRange, maxRange;
+
+  Config config;
 };
 
 #endif /* MAINFRAME_H_ */

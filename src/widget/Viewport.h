@@ -29,7 +29,7 @@
 #include <glow/GlVertexArray.h>
 #include <glow/util/RoSeCamera.h>
 
-#include "common.h"
+#include "data/common.h"
 #include "data/geometry.h"
 
 class Viewport : public QGLWidget {

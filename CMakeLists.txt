@@ -79,7 +79,19 @@ add_executable(voxelizer
   src/data/voxelize_utils.cpp
 )
 
+add_executable(gen_data 
+  src/data/label_utils.cpp
+  src/data/kitti_utils.cpp
+  src/data/VoxelGrid.cpp
+  src/rv/string_utils.cpp
+  src/rv/Stopwatch.cpp
+  src/data/misc.cpp
+  src/gen_data.cpp
 
+  src/widget/KittiReader.cpp
+  src/data/voxelize_utils.cpp
+)
 
 target_link_libraries(voxelizer ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} pthread Qt5::Xml Qt5::OpenGL Qt5::Widgets matio)
+target_link_libraries(gen_data ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} pthread Qt5::Xml Qt5::OpenGL Qt5::Widgets matio)
 

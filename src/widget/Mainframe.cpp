@@ -65,7 +65,7 @@ Mainframe::Mainframe() : mChangesSinceLastSave(false) {
 
   connect(ui.spinMaxRange, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged),
           [this](double value) {
-            maxRange = value;
+            config.maxRange = value;
             ui.mViewportXYZ->setMaxRange(value);
             setCurrentScanIdx(ui.sldTimeline->value());
           });
@@ -86,7 +86,7 @@ Mainframe::Mainframe() : mChangesSinceLastSave(false) {
 
   readConfig();
 
-  ui.mViewportXYZ->setFilteredLabels(filteredLabels);
+  ui.mViewportXYZ->setFilteredLabels(config.filteredLabels);
   ui.mViewportXYZ->setDrawingOption("highlight voxels", false);
 
   reader_.setNumPastScans(ui.spinPastScans->value());
@@ -235,13 +235,10 @@ void Mainframe::buildVoxelGrids() {
   if (priorPoints_.size() > 0) {
     Eigen::Matrix4f anchor_pose = priorPoints_.back()->pose;
 
-    fillVoxelGrid(anchor_pose, priorPoints_, priorLabels_, priorVoxelGrid_);
+    fillVoxelGrid(anchor_pose, priorPoints_, priorLabels_, priorVoxelGrid_, config);
 
-    fillVoxelGrid(anchor_pose, priorPoints_, priorLabels_, pastVoxelGrid_);
-    fillVoxelGrid(anchor_pose, pastPoints_, pastLabels_, pastVoxelGrid_);
-
-    priorVoxels_.clear();
-    pastVoxels_.clear();
+    fillVoxelGrid(anchor_pose, priorPoints_, priorLabels_, pastVoxelGrid_, config);
+    fillVoxelGrid(anchor_pose, pastPoints_, pastLabels_, pastVoxelGrid_, config);
 
     // updating occlusions.
     //    std::cout << "updating occlusions." << std::endl;
@@ -251,14 +248,17 @@ void Mainframe::buildVoxelGrids() {
     priorVoxelGrid_.insertOcclusionLabels();
     pastVoxelGrid_.insertOcclusionLabels();
 
-    // extract voxels and labels.
-    extractLabeledVoxels(priorVoxelGrid_, priorVoxels_);
-    extractLabeledVoxels(pastVoxelGrid_, pastVoxels_);
-
     for (uint32_t i = 0; i < pastPoints_.size(); ++i) {
       Eigen::Vector3f endpoint = (anchor_pose.inverse() * pastPoints_[i]->pose).col(3).head(3);
       pastVoxelGrid_.updateInvalid(endpoint);
     }
+
+    // only visualization code.
+    priorVoxels_.clear();
+    pastVoxels_.clear();
+    // extract voxels and labels.
+    extractLabeledVoxels(priorVoxelGrid_, priorVoxels_);
+    extractLabeledVoxels(pastVoxelGrid_, pastVoxels_);
 
     //    std::cout << "end" << std::endl;
   }
@@ -337,25 +337,6 @@ void Mainframe::updateInvalidVoxels() {
     }
 
     ui.mViewportXYZ->setInvalidVoxels(voxels);
-  }
-}
-
-void Mainframe::fillVoxelGrid(const Eigen::Matrix4f& anchor_pose, const std::vector<PointcloudPtr>& points,
-                              const std::vector<LabelsPtr>& labels, VoxelGrid& grid) {
-  for (uint32_t t = 0; t < points.size(); ++t) {
-    const Eigen::Matrix4f& pose = points[t]->pose;
-    for (uint32_t i = 0; i < points[t]->points.size(); ++i) {
-      const Point3f& pp = points[t]->points[i];
-      float range = Eigen::Vector3f(pp.x, pp.y, pp.z).norm();
-      if (range < minRange || range > maxRange) continue;
-      bool is_car_point = (pp.x < 3.0 && pp.x > -2.0 && std::abs(pp.y) < 2.0);
-      if (is_car_point) continue;
-
-      Eigen::Vector4f p = anchor_pose.inverse() * pose * Eigen::Vector4f(pp.x, pp.y, pp.z, 1);
-      if (std::find(filteredLabels.begin(), filteredLabels.end(), (*labels[t])[i]) == filteredLabels.end()) {
-        grid.insert(p, (*labels[t])[i]);
-      }
-    }
   }
 }
 
@@ -443,7 +424,7 @@ void Mainframe::readConfig() {
       float range = boost::lexical_cast<float>(trim(tokens[1]));
       ui.mViewportXYZ->setMaxRange(range);
       ui.spinMaxRange->setValue(range);
-      maxRange = range;
+      config.maxRange = range;
 
       std::cout << "-- Setting 'max range' to " << range << std::endl;
     }
@@ -453,14 +434,14 @@ void Mainframe::readConfig() {
       ui.mViewportXYZ->setMinRange(range);
       std::cout << "-- Setting 'min range' to " << range << std::endl;
 
-      minRange = range;
+      config.minRange = range;
     }
 
     if (tokens[0] == "ignore") {
       auto label_tokens = split(tokens[1], ",");
       for (const auto& token : label_tokens) {
         uint32_t label = boost::lexical_cast<uint32_t>(trim(token));
-        filteredLabels.push_back(label);
+        config.filteredLabels.push_back(label);
       }
     }
   }

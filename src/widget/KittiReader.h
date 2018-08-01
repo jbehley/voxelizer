@@ -6,7 +6,7 @@
 #include <eigen3/Eigen/Dense>
 #include <string>
 #include <vector>
-#include "common.h"
+#include "data/common.h"
 #include "data/kitti_utils.h"
 
 /** \brief
