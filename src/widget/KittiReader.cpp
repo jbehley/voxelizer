@@ -13,6 +13,7 @@ void KittiReader::initialize(const QString& directory) {
 
   QDir base_dir(directory);
   QDir velodyne_dir(base_dir.filePath("velodyne"));
+  if (!velodyne_dir.exists()) throw std::runtime_error("Missing velodyne files.");
   QStringList entries = velodyne_dir.entryList(QDir::Files, QDir::Name);
   for (int32_t i = 0; i < entries.size(); ++i) {
     velodyne_filenames_.push_back(velodyne_dir.filePath(entries.at(i)).toStdString());

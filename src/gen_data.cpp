@@ -1,12 +1,18 @@
 #include <matio.h>
 #include <stdint.h>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
+#include <sstream>
 
 #include <QtCore/QDir>
 #include "data/voxelize_utils.h"
 #include "rv/string_utils.h"
 #include "widget/KittiReader.h"
+
+float poseDistance(const Eigen::Matrix4f& A, const Eigen::Matrix4f& B) {
+  return (A.col(3).head(3) - B.col(3).head(3)).norm();
+}
 
 int32_t main(int32_t argc, char** argv) {
   if (argc < 3) {
@@ -29,16 +35,17 @@ int32_t main(int32_t argc, char** argv) {
       throw std::runtime_error("Unable to create output directory.");
     }
 
-    return 1;
+    output_dir.mkdir("input");
+    output_dir.mkdir("label");
   }
+
+  std::string seq = QDir(QString::fromStdString(input_directory)).dirName().toStdString();
 
   KittiReader reader;
   reader.initialize(QString::fromStdString(input_directory));
 
   reader.setNumPriorScans(config.priorScans);
   reader.setNumPastScans(config.pastScans);
-
-  //  uint32_t current = 0;
 
   VoxelGrid priorGrid;
   VoxelGrid pastGrid;
@@ -51,6 +58,8 @@ int32_t main(int32_t argc, char** argv) {
   uint32_t current = 0;
 
   while (current < reader.count()) {
+    std::cout << current << std::endl;
+
     std::vector<PointcloudPtr> priorPoints;
     std::vector<LabelsPtr> priorLabels;
     std::vector<PointcloudPtr> pastPoints;
@@ -58,32 +67,63 @@ int32_t main(int32_t argc, char** argv) {
 
     reader.retrieve(current, priorPoints, priorLabels, pastPoints, pastLabels);
 
+    // ensure that labels are present, only then store data.
+    uint32_t labelCount = 0;
+    uint32_t pointCount = 0;
+
+    for (uint32_t i = 0; i < pastLabels.size(); ++i) {
+      pointCount += pastLabels[i]->size();
+      for (uint32_t j = 0; j < pastLabels[i]->size(); ++j) {
+        uint32_t label = (*pastLabels[i])[j];
+        if (label > 0) labelCount += 1;
+      }
+    }
+
+    float percentageLabeled = 100.0f * labelCount / pointCount;
+    std::cout << percentageLabeled << "% points labeled." << std::endl;
+
     priorGrid.clear();
     pastGrid.clear();
 
-    Eigen::Matrix4f anchor_pose = priorPoints.back()->pose;
+    if (percentageLabeled > 90.0f) {
+      Eigen::Matrix4f anchor_pose = priorPoints.back()->pose;
 
-    fillVoxelGrid(anchor_pose, priorPoints, priorLabels, priorGrid, config);
+      fillVoxelGrid(anchor_pose, priorPoints, priorLabels, priorGrid, config);
 
-    fillVoxelGrid(anchor_pose, priorPoints, priorLabels, pastGrid, config);
-    fillVoxelGrid(anchor_pose, pastPoints, pastLabels, pastGrid, config);
+      fillVoxelGrid(anchor_pose, priorPoints, priorLabels, pastGrid, config);
+      fillVoxelGrid(anchor_pose, pastPoints, pastLabels, pastGrid, config);
 
-    // updating occlusions.
-    //    std::cout << "updating occlusions." << std::endl;
-    priorGrid.updateOcclusions();
-    pastGrid.updateOcclusions();
+      // updating occlusions.
+      //    std::cout << "updating occlusions." << std::endl;
+      priorGrid.updateOcclusions();
+      pastGrid.updateOcclusions();
 
-    priorGrid.insertOcclusionLabels();
-    pastGrid.insertOcclusionLabels();
+      priorGrid.insertOcclusionLabels();
+      pastGrid.insertOcclusionLabels();
 
-    for (uint32_t i = 0; i < pastPoints.size(); ++i) {
-      Eigen::Vector3f endpoint = (anchor_pose.inverse() * pastPoints[i]->pose).col(3).head(3);
-      pastGrid.updateInvalid(endpoint);
+      for (uint32_t i = 0; i < pastPoints.size(); ++i) {
+        Eigen::Vector3f endpoint = (anchor_pose.inverse() * pastPoints[i]->pose).col(3).head(3);
+        pastGrid.updateInvalid(endpoint);
+      }
+
+      // store grid in mat file.
+      std::stringstream outname;
+      outname << seq << "_" << std::setfill('0') << std::setw(6) << current << ".mat";
+      saveVoxelGrid(priorGrid, output_dirname + "/input/" + outname.str());
+      saveVoxelGrid(pastGrid, output_dirname + "/label/" + outname.str());
+    } else {
+      std::cout << "skipped." << std::endl;
     }
 
-    // store grid in mat file.
-
-    //    current += config.skip;
+    // get index of next scan.
+    float distance = 0.0f;
+    uint32_t count = 0;
+    while ((count < config.stride_num || distance < config.stride_distance || count == 0) &&
+           current + 1 < poses.size()) {
+      distance += poseDistance(poses[current], poses[current + 1]);
+      count += 1;
+      current += 1;
+    }
   }
 
   return 0;
