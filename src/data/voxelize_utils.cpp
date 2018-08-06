@@ -89,7 +89,20 @@ Config parseConfiguration(const std::string& filename) {
     if (tokens[0] == "stride distance") config.stride_distance = boost::lexical_cast<float>(trim(tokens[1]));
 
     if (tokens[0] == "min extent") {
-      auto coords = parseList<float>(tokens[1]);
+      auto coords = parseList<int32_t>(tokens[1]); // "auto" is of type "vector<int32_t>"
+      config.minExtent = Eigen::Vector4f(coords[0], coords[1], coords[2], 1);  
+      std::cout << "minExtent: " << coords[0] << "," << coords[1] << "," << coords[2] << std::endl;
+    }
+
+    if (tokens[0] == "max extent") {
+      auto coords = parseList<int32_t>(tokens[1]); // "auto" is of type "vector<int32_t>"
+      config.maxExtent = Eigen::Vector4f(coords[0], coords[1], coords[2], 1);  
+      std::cout << "maxExtent: " << coords[0] << "," << coords[1] << "," << coords[2] << std::endl;
+    }
+
+    if (tokens[0] == "voxel size") {
+      config.voxelSize = boost::lexical_cast<float>(trim(tokens[1]));
+      std::cout << "voxelSize = " << config.voxelSize << std::endl;
     }
 
     if (tokens[0] == "ignore") {
@@ -150,9 +163,9 @@ void saveVoxelGrid(const VoxelGrid& grid, const std::string& filename) {
   uint32_t Ny = grid.size(1);
   uint32_t Nz = grid.size(2);
 
-  //  std::cout << "Nx = " << Nx << std::endl;
-  //  std::cout << "Ny = " << Ny << std::endl;
-  //  std::cout << "Nz = " << Nz << std::endl;
+  std::cout << "Nx = " << Nx << std::endl;
+  std::cout << "Ny = " << Ny << std::endl;
+  std::cout << "Nz = " << Nz << std::endl;
 
   size_t numElements = grid.num_elements();
   std::vector<uint32_t> outputTensor(numElements, 0);
