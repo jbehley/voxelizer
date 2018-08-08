@@ -60,38 +60,62 @@ COMPILE_SHADERS(${VIZ_SHADER_SRC}
   src/shaders/blinnphong.frag
 )
 
-add_executable(voxelizer 
+#add_executable(voxelizer 
+#  ${UI_HDRS}
+#  ${VIZ_SHADER_SRC}
+#  
+#  src/data/label_utils.cpp
+#  src/data/kitti_utils.cpp
+#  src/data/VoxelGrid.cpp
+#  src/rv/string_utils.cpp
+#  src/rv/Stopwatch.cpp
+#  src/data/misc.cpp
+#  src/voxelizer.cpp
+#  src/widget/Mainframe.h
+#  src/widget/Viewport.h
+#  src/widget/Mainframe.cpp
+#  src/widget/Viewport.cpp
+#  src/widget/KittiReader.cpp
+#  src/data/voxelize_utils.cpp
+#)src/widget/Viewport.h
+
+#add_executable(gen_data 
+#  src/data/label_utils.cpp
+#  src/data/kitti_utils.cpp
+#  src/data/VoxelGrid.cpp
+#  src/rv/string_utils.cpp
+#  src/rv/Stopwatch.cpp
+#  src/data/misc.cpp
+#  src/gen_data.cpp
+
+#  src/widget/KittiReader.cpp
+#  src/data/voxelize_utils.cpp
+#)
+
+add_executable(visualize_3D_grid
+  src/visualize_3D_grid.cpp
+  src/data/VoxelGrid.cpp
+  src/data/voxelize_utils.cpp
+  src/rv/string_utils.cpp
   ${UI_HDRS}
   ${VIZ_SHADER_SRC}
-  
-  src/data/label_utils.cpp
-  src/data/kitti_utils.cpp
-  src/data/VoxelGrid.cpp
-  src/rv/string_utils.cpp
-  src/rv/Stopwatch.cpp
-  src/data/misc.cpp
-  src/voxelizer.cpp
-  src/widget/Mainframe.h
-  src/widget/Viewport.h
-  src/widget/Mainframe.cpp
   src/widget/Viewport.cpp
-  src/widget/KittiReader.cpp
-  src/data/voxelize_utils.cpp
-)
+  src/widget/Mainframe.cpp
+  src/data/label_utils.cpp)
 
-add_executable(gen_data 
-  src/data/label_utils.cpp
-  src/data/kitti_utils.cpp
-  src/data/VoxelGrid.cpp
-  src/rv/string_utils.cpp
-  src/rv/Stopwatch.cpp
-  src/data/misc.cpp
-  src/gen_data.cpp
+#target_link_libraries(voxelizer ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} pthread Qt5::Xml Qt5::OpenGL Qt5::Widgets matio)
+#target_link_libraries(gen_data ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} pthread Qt5::Xml Qt5::OpenGL Qt5::Widgets matio)
 
-  src/widget/KittiReader.cpp
-  src/data/voxelize_utils.cpp
-)
+target_link_libraries(visualize_3D_grid ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} pthread Qt5::Xml Qt5::OpenGL Qt5::Widgets matio)
 
-target_link_libraries(voxelizer ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} pthread Qt5::Xml Qt5::OpenGL Qt5::Widgets matio)
-target_link_libraries(gen_data ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} pthread Qt5::Xml Qt5::OpenGL Qt5::Widgets matio)
+
+
+
+
+
+
+
+
+
+
 

@@ -58,6 +58,21 @@ void VoxelGrid::insert(const Eigen::Vector4f& p, uint32_t label) {
   occlusionsValid_ = false;
 }
 
+void VoxelGrid::insertMat(uint32_t i, uint32_t j, uint32_t k , uint32_t label) {
+
+  if ((i >= int32_t(sizex_)) || (j >= int32_t(sizey_)) || (k >= int32_t(sizez_))) return;
+  if ((i < 0) || (j < 0) || (k < 0)) return;
+  int32_t gidx = index(i, j, k);
+  if (gidx < 0 || gidx >= int32_t(voxels_.size())) return;
+
+  if (label == 0) return; // TODO: The handling of empty "0" voxels is handled differently in the original voxelizer.cpp
+
+  occupied_.push_back(gidx);
+  voxels_[gidx].labels[label] += 1;  //(1. / (n + 1)) * (n * voxels_[gidx].point + p);
+  voxels_[gidx].count += 1;
+  occlusionsValid_ = false;
+}
+
 bool VoxelGrid::isOccluded(int32_t i, int32_t j, int32_t k) const { return occlusions_[index(i, j, k)] > -1; }
 
 bool VoxelGrid::isFree(int32_t i, int32_t j, int32_t k) const { return occlusions_[index(i, j, k)] == -1; }

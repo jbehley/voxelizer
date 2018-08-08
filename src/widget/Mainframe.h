@@ -19,12 +19,13 @@
 class Mainframe : public QMainWindow {
   Q_OBJECT
  public:
-  Mainframe();
+  Mainframe(VoxelGrid);
   ~Mainframe();
+  void saveScreenshot();
 
  public slots:
-  void open();
-  void save();
+  // void open();
+  // void save();
 
  signals:
   void readerStarted();
@@ -68,7 +69,7 @@ class Mainframe : public QMainWindow {
 
   void setCurrentScanIdx(int32_t idx);
 
-  void closeEvent(QCloseEvent* event);
+  // void closeEvent(QCloseEvent* event);
 
   void readConfig();
 
@@ -83,10 +84,10 @@ class Mainframe : public QMainWindow {
 //  std::vector<uint32_t> filteredLabels;
   std::string filename;
 
-  void keyPressEvent(QKeyEvent* event);
+  // void keyPressEvent(QKeyEvent* event);
 
  protected slots:
-  void unsavedChanges();
+  // void unsavedChanges();
 
  private:
   Ui::MainWindow ui;
@@ -97,16 +98,9 @@ class Mainframe : public QMainWindow {
 
   Point3f midpoint;
 
-  KittiReader reader_;
-  std::future<void> readerFuture_;
-
   VoxelGrid priorVoxelGrid_;
-  VoxelGrid pastVoxelGrid_;
-
   std::vector<LabeledVoxel> priorVoxels_;
-  std::vector<LabeledVoxel> pastVoxels_;
   std::vector<Eigen::Vector3i> visited_;
-
   std::vector<int32_t> invalidVoxels_;
 
 //  Eigen::Vector4f minExtent;

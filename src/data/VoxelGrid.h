@@ -32,6 +32,9 @@ class VoxelGrid {
 
   /** \brief add label for specific point to voxel grid **/
   void insert(const Eigen::Vector4f& p, uint32_t label);
+
+  void insertMat(uint32_t i, uint32_t j, uint32_t k , uint32_t label);
+
   /** \brief get  all voxels. **/
   const std::vector<Voxel>& voxels() const { return voxels_; }
 

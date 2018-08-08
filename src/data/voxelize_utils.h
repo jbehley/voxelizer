@@ -39,6 +39,7 @@ Config parseConfiguration(const std::string& filename);
 void fillVoxelGrid(const Eigen::Matrix4f& anchor_pose, const std::vector<PointcloudPtr>& points,
                    const std::vector<LabelsPtr>& labels, VoxelGrid& grid, const Config& config);
 
+void fillVoxelGridMat(int32_t*& labels, VoxelGrid& grid);
 /** \brief save given voxelgrid as .mat file.
  *
  *  \author mgarbade

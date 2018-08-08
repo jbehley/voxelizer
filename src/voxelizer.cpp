@@ -5,6 +5,8 @@ int main(int argc, char** argv) {
   if (argc == 1) {
     QApplication app(argc, argv);
 
+    // app.setQuitOnLastWindowClosed(false);
+
     Mainframe frame;
     frame.show();
 

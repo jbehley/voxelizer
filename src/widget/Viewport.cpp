@@ -45,8 +45,10 @@ Viewport::Viewport(QWidget* parent, Qt::WindowFlags f)
   drawingOption_["show all points"] = false;
   drawingOption_["show points"] = true;
   drawingOption_["show train"] = true;
-  drawingOption_["show points"] = true;
-  drawingOption_["show voxels"] = false;
+  drawingOption_["show points"] = false;
+  drawingOption_["show voxels"] = true;
+  drawingOption_["show occluded"] = false;
+  drawingOption_["show invalid"] = false;
 
   texLabelColors_.setMinifyingOperation(TexRectMinOp::NEAREST);
   texLabelColors_.setMagnifyingOperation(TexRectMagOp::NEAREST);
@@ -118,12 +120,12 @@ void Viewport::setMaximumScans(uint32_t numScans) {
   bufLabels_.resize(max_size);
 }
 
-void Viewport::setVoxels(const std::vector<LabeledVoxel>& priorVoxels, const std::vector<LabeledVoxel>& pastVoxels) {
+void Viewport::setVoxels(const std::vector<LabeledVoxel>& priorVoxels) {
   bufPriorVoxels_.resize(priorVoxels.size());
-  bufPastVoxels_.resize(pastVoxels.size());
+  // bufPastVoxels_.resize(pastVoxels.size());
 
   bufPriorVoxels_.assign(priorVoxels);
-  bufPastVoxels_.assign(pastVoxels);
+  // bufPastVoxels_.assign(pastVoxels);
 
   updateGL();
 }
@@ -336,7 +338,10 @@ void Viewport::initializeGL() {
   glDepthFunc(GL_LEQUAL);
   glEnable(GL_LINE_SMOOTH);
 
-  mCamera.lookAt(5.0f, 5.0f, 5.0f, 0.0f, 0.0f, 0.0f);
+  // lookAt(DistanceFromOrigin[side, height, depth],[PointToLookAt])
+  mCamera.lookAt(0.0f, 15.0f, 20.0f, 0.0f, 5.0f, 0.0f);
+  
+
 }
 
 void Viewport::resizeGL(int w, int h) {
@@ -449,6 +454,7 @@ void Viewport::paintGL() {
   }
 
   if (drawingOption_["show occluded"]) {
+    std::cout << "Error: should not draw occluded voxels" << std::endl;
     ScopedBinder<GlProgram> program_binder(prgDrawVoxels_);
 
     mvp_ = projection_ * view_ * conversion_;
@@ -468,6 +474,7 @@ void Viewport::paintGL() {
   }
 
   if (drawingOption_["show invalid"]) {
+    std::cout << "Error: should not draw invalid voxels" << std::endl;
     ScopedBinder<GlProgram> program_binder(prgDrawVoxels_);
 
     mvp_ = projection_ * view_ * conversion_;

@@ -58,7 +58,7 @@ class Viewport : public QGLWidget {
 
   void setLabelColors(const std::map<uint32_t, glow::GlColor>& colors);
 
-  void setVoxels(const std::vector<LabeledVoxel>& priorVoxels, const std::vector<LabeledVoxel>& pastVoxels);
+  void setVoxels(const std::vector<LabeledVoxel>& priorVoxels);
 
   void setVoxelGridProperties(float voxelSize, const Eigen::Vector4f& offset);
 
