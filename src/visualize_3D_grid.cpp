@@ -5,9 +5,14 @@
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QApplication>
 
+#include <QLabel>
+#include <QDebug>
+
 #include <data/voxelize_utils.h>
 #include <widget/Mainframe.h>
 
+#include <chrono>
+#include <thread>
 
 
 template<typename T>
@@ -45,7 +50,7 @@ void readMatFile(const char* filename, int32_t*& xData, unsigned& xSize){
 
 int main(int argc, char** argv) {
 
-  const char* filename = "/home/garbade/tmp/testMat.mat";
+  const char* filename = "../assets/voxelData.mat";
   int32_t* inVoxels; 
   unsigned numVoxels;
   readMatFile(filename, inVoxels, numVoxels);
@@ -58,11 +63,24 @@ int main(int argc, char** argv) {
   fillVoxelGridMat(inVoxels, voxelGrid);
   std::cout << "Size VoxelGrid = " << voxelGrid.num_elements() << std::endl;
 
+
+
   QApplication app(argc, argv);
   Mainframe frame(voxelGrid);
   frame.show();
 
-  return app.exec();
+  Viewport* widget;
+  widget = frame.ui.mViewportXYZ;
+  widget->show();
+
+  QApplication::processEvents();
+  QApplication::processEvents();
+
+  widget->updateGL();
+  frame.saveScreenshot();
+
+  return 0;
 }
+
 
 

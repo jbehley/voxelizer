@@ -22,6 +22,7 @@ class Mainframe : public QMainWindow {
   Mainframe(VoxelGrid);
   ~Mainframe();
   void saveScreenshot();
+  Ui::MainWindow ui;
 
  public slots:
   // void open();
@@ -58,16 +59,16 @@ class Mainframe : public QMainWindow {
   void updateOccludedVoxels();
 
   /** \brief determine invalid voxels. **/
-  void updateInvalidVoxels();
+  // void updateInvalidVoxels();
 
   //  void saveVoxelGrid(const VoxelGrid& grid, const std::string& filename);
 
-  void activateSpinner();
+  // void activateSpinner();
 
-  void forward();
-  void backward();
+  // void forward();
+  // void backward();
 
-  void setCurrentScanIdx(int32_t idx);
+  // void setCurrentScanIdx(int32_t idx);
 
   // void closeEvent(QCloseEvent* event);
 
@@ -90,7 +91,7 @@ class Mainframe : public QMainWindow {
   // void unsavedChanges();
 
  private:
-  Ui::MainWindow ui;
+  
 
   std::map<uint32_t, std::string> label_names;
   bool mChangesSinceLastSave;

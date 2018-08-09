@@ -20,6 +20,9 @@ Viewport::Viewport(QWidget* parent, Qt::WindowFlags f)
       mFlags(FLAG_OVERWRITE),
       buttonPressed(false),
       texLabelColors_(256, 1, TextureFormat::RGB) {
+
+
+  std::cout << "Viewport Constructor" << std::endl;
   connect(&timer_, &QTimer::timeout, [this]() { this->updateGL(); });
 
   //  setMouseTracking(true);
@@ -56,6 +59,7 @@ Viewport::Viewport(QWidget* parent, Qt::WindowFlags f)
   setAutoFillBackground(false);
 
   glow::_CheckGlError(__FILE__, __LINE__);
+
 }
 
 Viewport::~Viewport() {}
@@ -121,6 +125,8 @@ void Viewport::setMaximumScans(uint32_t numScans) {
 }
 
 void Viewport::setVoxels(const std::vector<LabeledVoxel>& priorVoxels) {
+
+  std::cout << "Viewport::setVoxels" << std::endl;
   bufPriorVoxels_.resize(priorVoxels.size());
   // bufPastVoxels_.resize(pastVoxels.size());
 

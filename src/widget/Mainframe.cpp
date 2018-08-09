@@ -41,20 +41,9 @@ Mainframe::Mainframe(VoxelGrid inVoxelGrid) : mChangesSinceLastSave(false) {
   ui.mViewportXYZ->setDrawingOption("show occluded", false);
   ui.mViewportXYZ->setDrawingOption("highlight voxels", false);
   
+  ui.mViewportXYZ->updateGL();
 
-  // priorVoxelGrid_.
-
-  // for(int i = 0; i < 22445; ++i)
-  // {
-  //   if (priorVoxelGrid_.label[i] > 0) std::cout << "\tx[" << i <<"] = "<< priorVoxelGrid_.label[i] << "\n" ;
-  // }
-
-
-
-//     VoxelGrid_ = voxelGrid;
-//     ui.mViewportXYZ->setVoxelGridProperties(voxelSize, VoxelGrid_.offset());
-
-
+  saveScreenshot();
 }
 
 Mainframe::~Mainframe() {}
