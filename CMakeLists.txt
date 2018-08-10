@@ -10,7 +10,9 @@ find_package(Qt5Xml REQUIRED)
 find_package(Qt5Gui REQUIRED) 
 find_package(Qt5OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
-find_package(Boost REQUIRED COMPONENTS filesystem system)
+find_package(Boost REQUIRED COMPONENTS filesystem system python)
+find_package(PythonInterp REQUIRED) ##
+find_package(PythonLibs REQUIRED) ##
 
 find_package(catkin COMPONENTS 
      glow)
@@ -25,18 +27,21 @@ if(catkin_FOUND)
   )
 endif()
 
-include_directories(${catkin_INCLUDE_DIRS} src/ ${QT5_INCLUDE_DIRS} ${GLEW_INCLUDE_DIRS} /usr/include/eigen3 /usr/local/include)
+include_directories(${catkin_INCLUDE_DIRS} 
+                    src/ 
+                    ${QT5_INCLUDE_DIRS} 
+                    ${GLEW_INCLUDE_DIRS} 
+                    /usr/include/eigen3 
+                    /usr/local/include
+                    ${PYTHON_INCLUDE_DIRS})
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON) # needs to be activated for qt generated files in build directory.
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_CXX_FLAGS "-std=c++11 -O3  -Wall ${CMAKE_CXX_FLAGS}")
 set(CMAKE_CXX_FLAGS "-UDEBUG_GL -UDEBUG -DNDEBUG -g2 ${CMAKE_CXX_FLAGS}")
-
 # since now everything resides in "bin", we have to copy some stuff.
-  
-
 SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
-
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 configure_file(assets/labels.xml ${CMAKE_SOURCE_DIR}/bin/labels.xml COPYONLY)
 configure_file(assets/settings.cfg ${CMAKE_SOURCE_DIR}/bin/settings.cfg COPYONLY)
 
@@ -60,40 +65,8 @@ COMPILE_SHADERS(${VIZ_SHADER_SRC}
   src/shaders/blinnphong.frag
 )
 
-#add_executable(voxelizer 
-#  ${UI_HDRS}
-#  ${VIZ_SHADER_SRC}
-#  
-#  src/data/label_utils.cpp
-#  src/data/kitti_utils.cpp
-#  src/data/VoxelGrid.cpp
-#  src/rv/string_utils.cpp
-#  src/rv/Stopwatch.cpp
-#  src/data/misc.cpp
-#  src/voxelizer.cpp
-#  src/widget/Mainframe.h
-#  src/widget/Viewport.h
-#  src/widget/Mainframe.cpp
-#  src/widget/Viewport.cpp
-#  src/widget/KittiReader.cpp
-#  src/data/voxelize_utils.cpp
-#)src/widget/Viewport.h
-
-#add_executable(gen_data 
-#  src/data/label_utils.cpp
-#  src/data/kitti_utils.cpp
-#  src/data/VoxelGrid.cpp
-#  src/rv/string_utils.cpp
-#  src/rv/Stopwatch.cpp
-#  src/data/misc.cpp
-#  src/gen_data.cpp
-
-#  src/widget/KittiReader.cpp
-#  src/data/voxelize_utils.cpp
-#)
-
-add_executable(visualize_3D_grid
-  src/visualize_3D_grid.cpp
+add_library(py_visualize_3D_grid SHARED
+  src/py_visualize_3D_grid.cpp
   src/data/VoxelGrid.cpp
   src/data/voxelize_utils.cpp
   src/rv/string_utils.cpp
@@ -103,19 +76,15 @@ add_executable(visualize_3D_grid
   src/widget/Mainframe.cpp
   src/data/label_utils.cpp)
 
-#target_link_libraries(voxelizer ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} pthread Qt5::Xml Qt5::OpenGL Qt5::Widgets matio)
-#target_link_libraries(gen_data ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} pthread Qt5::Xml Qt5::OpenGL Qt5::Widgets matio)
-
-target_link_libraries(visualize_3D_grid ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} pthread Qt5::Xml Qt5::OpenGL Qt5::Widgets matio)
-
-
-
-
-
+target_link_libraries(py_visualize_3D_grid 
+                      ${catkin_LIBRARIES} 
+                      ${Boost_LIBRARIES} 
+                      ${OPENGL_LIBRARIES} 
+                      ${GLEW_LIBRARIES} 
+                      pthread Qt5::Xml Qt5::OpenGL Qt5::Widgets 
+                      matio boost_python)
 
 
-
-
-
-
-
+# Tweaks the name of the library to match what Python expects
+set_target_properties(py_visualize_3D_grid PROPERTIES SUFFIX .so)
+set_target_properties(py_visualize_3D_grid PROPERTIES PREFIX "")

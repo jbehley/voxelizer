@@ -52,7 +52,7 @@ Mainframe::~Mainframe() {}
 void Mainframe::saveScreenshot(){
 
   QImage img = ui.mViewportXYZ->grabFrameBuffer();
-  img.save("screenshot.png");
+  img.save("screenshot_new.png");
   QApplication::clipboard()->setImage(img);
 
 }
