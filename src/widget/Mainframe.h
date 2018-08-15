@@ -21,7 +21,7 @@ class Mainframe : public QMainWindow {
  public:
   Mainframe(VoxelGrid);
   ~Mainframe();
-  void saveScreenshot();
+  void saveScreenshot(const char* outFilename);
   Ui::MainWindow ui;
 
  public slots:

@@ -42,14 +42,22 @@ void readMatFile(const char* filename, int32_t*& xData, unsigned& xSize){
     }
 }
 
-void plot(const char* filename)
+void plot(const char* filename, const char* outFilename, float voxelSize)
 {
 
   std::cout << "Visualize 3D Grid New2" << std::endl;
+
+  std::cout << "inFile = " << filename << std::endl;
+  std::cout << "outFile = " << outFilename << std::endl;
+  std::cout << "voxelSize = " << voxelSize << std::endl;
+
+
+
+
+
   int32_t* inVoxels; 
   unsigned numVoxels;
   readMatFile(filename, inVoxels, numVoxels);
-  float voxelSize{0.6};                                       // size of a voxel
   Eigen::Vector4f minExtent{Eigen::Vector4f(0, -20, -2, 1)};  // minimum coordinate to consider for voxelgrid creation
   Eigen::Vector4f maxExtent{Eigen::Vector4f(40, 20, 1, 1)}; 
   VoxelGrid voxelGrid;
@@ -77,18 +85,16 @@ void plot(const char* filename)
   std::cout << "Process Events" << std::endl;
 
 // while(true) {QApplication::processEvents(); }
-for ( int i = 0; i < 300000; i++){
-  if (i % 100000 == 0) std::cout << i << std::endl;
+for ( int i = 0; i < 100; i++){
+  // if (i % 100000 == 0)
+  std::cout << i << std::endl;
   QApplication::processEvents();
   QApplication::processEvents();
-  QApplication::processEvents();
-  QApplication::processEvents();
-  QApplication::processEvents();
-  QApplication::processEvents();
+  widget->updateGL();
 }
   std::cout << "UpdateGL" << std::endl;
   widget->updateGL();
-  frame.saveScreenshot();
+  frame.saveScreenshot(outFilename);
 }
 
 

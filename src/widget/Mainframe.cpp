@@ -43,16 +43,16 @@ Mainframe::Mainframe(VoxelGrid inVoxelGrid) : mChangesSinceLastSave(false) {
   
   ui.mViewportXYZ->updateGL();
 
-  saveScreenshot();
+  // saveScreenshot();
 }
 
 Mainframe::~Mainframe() {}
 
 
-void Mainframe::saveScreenshot(){
+void Mainframe::saveScreenshot(const char* outFilename){
 
   QImage img = ui.mViewportXYZ->grabFrameBuffer();
-  img.save("screenshot_new.png");
+  img.save(outFilename);
   QApplication::clipboard()->setImage(img);
 
 }
