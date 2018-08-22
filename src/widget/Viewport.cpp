@@ -336,7 +336,10 @@ void Viewport::initializeGL() {
   glDepthFunc(GL_LEQUAL);
   glEnable(GL_LINE_SMOOTH);
 
-  mCamera.lookAt(5.0f, 5.0f, 5.0f, 0.0f, 0.0f, 0.0f);
+  // lookAt(DistanceFromOrigin[side, height, depth],[PointToLookAt])
+  mCamera.lookAt(0.0f, 15.0f, 20.0f, 0.0f, 5.0f, 0.0f);
+  
+
 }
 
 void Viewport::resizeGL(int w, int h) {

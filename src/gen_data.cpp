@@ -58,7 +58,7 @@ int32_t main(int32_t argc, char** argv) {
   uint32_t current = 0;
 
   while (current < reader.count()) {
-    std::cout << current << std::endl;
+    std::cout << current << " reader.count = " << reader.count() << std::endl;
 
     std::vector<PointcloudPtr> priorPoints;
     std::vector<LabelsPtr> priorLabels;
@@ -118,13 +118,21 @@ int32_t main(int32_t argc, char** argv) {
     // get index of next scan.
     float distance = 0.0f;
     uint32_t count = 0;
-    while ((count < config.stride_num || distance < config.stride_distance || count == 0) &&
-           current + 1 < poses.size()) {
-      distance += poseDistance(poses[current], poses[current + 1]);
-      count += 1;
-      current += 1;
+    while (count < config.stride_num || 
+            distance < config.stride_distance || 
+            count == 0){
+
+      if ( (current + 1 < poses.size()) == false ){
+        std::cout << "Final pose reached" << std::endl;
+        return 0;
+      } else {
+        distance += poseDistance(poses[current], poses[current + 1]);
+        count += 1;
+        current += 1;
+      }
     }
   }
 
+  
   return 0;
 }
