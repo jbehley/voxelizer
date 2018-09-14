@@ -323,29 +323,27 @@ void Mainframe::updateOccludedVoxels() {
 }
 
 void Mainframe::updateInvalidVoxels() {
-  if (invalidVoxels_.size() > 0) {
-    std::vector<LabeledVoxel> voxels;
+  std::vector<LabeledVoxel> voxels;
 
-    float voxelSize = pastVoxelGrid_.resolution();
-    Eigen::Vector4f offset = pastVoxelGrid_.offset();
+  float voxelSize = pastVoxelGrid_.resolution();
+  Eigen::Vector4f offset = pastVoxelGrid_.offset();
 
-    for (uint32_t x = 0; x < pastVoxelGrid_.size(0); ++x) {
-      for (uint32_t y = 0; y < pastVoxelGrid_.size(1); ++y) {
-        for (uint32_t z = 0; z < pastVoxelGrid_.size(2); ++z) {
-          if (!pastVoxelGrid_.isInvalid(x, y, z)) continue;
+  for (uint32_t x = 0; x < pastVoxelGrid_.size(0); ++x) {
+    for (uint32_t y = 0; y < pastVoxelGrid_.size(1); ++y) {
+      for (uint32_t z = 0; z < pastVoxelGrid_.size(2); ++z) {
+        if (!pastVoxelGrid_.isInvalid(x, y, z)) continue;
 
-          LabeledVoxel lv;
-          Eigen::Vector4f pos =
-              offset + Eigen::Vector4f(x * voxelSize + 0.1, y * voxelSize + 0.1, z * voxelSize + 0.1, 0.0f);
-          lv.position = vec3(pos.x(), pos.y(), pos.z());
-          lv.label = 11;
-          voxels.push_back(lv);
-        }
+        LabeledVoxel lv;
+        Eigen::Vector4f pos =
+            offset + Eigen::Vector4f(x * voxelSize + 0.1, y * voxelSize + 0.1, z * voxelSize + 0.1, 0.0f);
+        lv.position = vec3(pos.x(), pos.y(), pos.z());
+        lv.label = 11;
+        voxels.push_back(lv);
       }
     }
-
-    ui.mViewportXYZ->setInvalidVoxels(voxels);
   }
+
+  ui.mViewportXYZ->setInvalidVoxels(voxels);
 }
 
 void Mainframe::extractLabeledVoxels(const VoxelGrid& grid, std::vector<LabeledVoxel>& labeledVoxels) {

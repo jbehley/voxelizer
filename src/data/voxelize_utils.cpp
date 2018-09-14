@@ -58,7 +58,7 @@ std::vector<std::string> parseList(std::string str) {
 
 Config parseConfiguration(const std::string& filename) {
   Config config;
-  std::ifstream in("settings.cfg");
+  std::ifstream in(filename);
 
   if (!in.is_open()) return config;
 
@@ -67,11 +67,13 @@ Config parseConfiguration(const std::string& filename) {
   while (in.good() && !in.eof()) {
     std::getline(in, line);
 
+    if (trim(line)[0] == '#') continue;  // ignore comments.
+
     auto tokens = split(line, ":");
     if (tokens.size() < 2) continue;
     if (tokens.size() > 2) {
       for (uint32_t i = 2; i < tokens.size(); ++i) {
-        tokens[1] += tokens[i];
+        tokens[1] += ":" + tokens[i];
       }
       tokens.resize(2);
     }

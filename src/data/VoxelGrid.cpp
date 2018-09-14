@@ -64,7 +64,9 @@ bool VoxelGrid::isOccluded(int32_t i, int32_t j, int32_t k) const { return occlu
 bool VoxelGrid::isFree(int32_t i, int32_t j, int32_t k) const { return occlusions_[index(i, j, k)] == -1; }
 
 bool VoxelGrid::isInvalid(int32_t i, int32_t j, int32_t k) const {
-  return (invalid_[index(i, j, k)] > -1) && (invalid_[index(i, j, k)] == index(i, j, k));
+  if (int32_t(invalid_.size()) < index(i, j, k)) return true;
+
+  return (invalid_[index(i, j, k)] > -1) && (invalid_[index(i, j, k)] != index(i, j, k));
 }
 
 void VoxelGrid::insertOcclusionLabels() {
@@ -105,7 +107,9 @@ void VoxelGrid::updateOcclusions() {
 }
 
 void VoxelGrid::updateInvalid(const Eigen::Vector3f& position) {
-  std::fill(occludedBy_.begin(), occludedBy_.end(), -2);
+  if (!occlusionsValid_) updateOcclusions();
+
+  //  std::fill(occludedBy_.begin(), occludedBy_.end(), -2);
   for (uint32_t x = 0; x < sizex_; ++x) {
     for (uint32_t y = 0; y < sizey_; ++y) {
       for (uint32_t z = 0; z < sizez_; ++z) {
