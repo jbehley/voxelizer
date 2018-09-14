@@ -7,8 +7,11 @@
 
 #include <QtCore/QDir>
 #include "data/voxelize_utils.h"
+#include "rv/Stopwatch.h"
 #include "rv/string_utils.h"
 #include "widget/KittiReader.h"
+
+using namespace rv;
 
 float poseDistance(const Eigen::Matrix4f& A, const Eigen::Matrix4f& B) {
   return (A.col(3).head(3) - B.col(3).head(3)).norm();
@@ -88,29 +91,39 @@ int32_t main(int32_t argc, char** argv) {
     if (percentageLabeled > 90.0f) {
       Eigen::Matrix4f anchor_pose = priorPoints.back()->pose;
 
+      Stopwatch::tic();
       fillVoxelGrid(anchor_pose, priorPoints, priorLabels, priorGrid, config);
 
       fillVoxelGrid(anchor_pose, priorPoints, priorLabels, pastGrid, config);
       fillVoxelGrid(anchor_pose, pastPoints, pastLabels, pastGrid, config);
+      std::cout << "fill voxelgrid took " << Stopwatch::toc() << std::endl;
 
+      Stopwatch::tic();
       // updating occlusions.
       //    std::cout << "updating occlusions." << std::endl;
       priorGrid.updateOcclusions();
       pastGrid.updateOcclusions();
+      std::cout << "update occlusions took " << Stopwatch::toc() << std::endl;
 
+      Stopwatch::tic();
       priorGrid.insertOcclusionLabels();
       pastGrid.insertOcclusionLabels();
+      std::cout << "occlusion labels took " << Stopwatch::toc() << std::endl;
 
+      Stopwatch::tic();
       for (uint32_t i = 0; i < pastPoints.size(); ++i) {
         Eigen::Vector3f endpoint = (anchor_pose.inverse() * pastPoints[i]->pose).col(3).head(3);
         pastGrid.updateInvalid(endpoint);
       }
+      std::cout << "update invalid took " << Stopwatch::toc() << std::endl;
 
+      Stopwatch::tic();
       // store grid in mat file.
       std::stringstream outname;
       outname << seq << "_" << std::setfill('0') << std::setw(6) << current << ".mat";
       saveVoxelGrid(priorGrid, output_dirname + "/input/" + outname.str());
       saveVoxelGrid(pastGrid, output_dirname + "/label/" + outname.str());
+      std::cout << "saving took " << Stopwatch::toc() << std::endl;
     } else {
       std::cout << "skipped." << std::endl;
     }

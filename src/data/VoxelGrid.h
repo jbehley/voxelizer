@@ -86,7 +86,7 @@ class VoxelGrid {
    *  \return index of voxel that occludes given voxel, -1  if voxel is not occluded.
    **/
   int32_t occludedBy(int32_t i, int32_t j, int32_t k, const Eigen::Vector3f& endpoint = Eigen::Vector3f::Zero(),
-                     std::vector<Eigen::Vector3i>* visited = nullptr) const;
+                     std::vector<Eigen::Vector3i>* visited = nullptr);
 
   /** \brief get position of voxel center. **/
   inline Eigen::Vector3f voxel2position(int32_t i, int32_t j, int32_t k) const {
