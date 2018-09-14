@@ -23,6 +23,7 @@ std::vector<std::string> parseDictionary(std::string str) {
 
 template <class T>
 std::vector<T> parseList(std::string str) {
+  str = trim(str);
   std::vector<T> list;
 
   str = trim(str);
@@ -34,8 +35,8 @@ std::vector<T> parseList(std::string str) {
   auto entry_tokens = split(str.substr(1, str.size() - 2), ",");
 
   for (const auto& token : entry_tokens) {
-    uint32_t label = boost::lexical_cast<T>(trim(token));
-    list.push_back(label);
+    T value = boost::lexical_cast<T>(trim(token));
+    list.push_back(value);
   }
 
   return list;
@@ -78,22 +79,61 @@ Config parseConfiguration(const std::string& filename) {
       tokens.resize(2);
     }
 
-    if (tokens[0] == "max scans") config.maxNumScans = boost::lexical_cast<uint32_t>(trim(tokens[1]));
-    if (tokens[0] == "max range") config.maxRange = boost::lexical_cast<float>(trim(tokens[1]));
-    if (tokens[0] == "min range") config.minRange = boost::lexical_cast<float>(trim(tokens[1]));
-    if (tokens[0] == "prior scans") config.priorScans = boost::lexical_cast<uint32_t>(trim(tokens[1]));
-    if (tokens[0] == "past scans") config.pastScans = boost::lexical_cast<uint32_t>(trim(tokens[1]));
-    if (tokens[0] == "past distance") config.pastScans = boost::lexical_cast<float>(trim(tokens[1]));
+    if (tokens[0] == "max scans") {
+      config.maxNumScans = boost::lexical_cast<uint32_t>(trim(tokens[1]));
+      continue;
+    }
+    if (tokens[0] == "max range") {
+      config.maxRange = boost::lexical_cast<float>(trim(tokens[1]));
+      continue;
+    }
+    if (tokens[0] == "voxel size") {
+      config.voxelSize = boost::lexical_cast<float>(trim(tokens[1]));
+      continue;
+    }
+    if (tokens[0] == "min range") {
+      config.minRange = boost::lexical_cast<float>(trim(tokens[1]));
+      continue;
+    }
+    if (tokens[0] == "prior scans") {
+      config.priorScans = boost::lexical_cast<uint32_t>(trim(tokens[1]));
+      continue;
+    }
+    if (tokens[0] == "past scans") {
+      config.pastScans = boost::lexical_cast<uint32_t>(trim(tokens[1]));
+      continue;
+    }
+    if (tokens[0] == "past distance") {
+      config.pastScans = boost::lexical_cast<float>(trim(tokens[1]));
+      continue;
+    }
 
-    if (tokens[0] == "stride num") config.stride_num = boost::lexical_cast<uint32_t>(trim(tokens[1]));
-    if (tokens[0] == "stride distance") config.stride_distance = boost::lexical_cast<float>(trim(tokens[1]));
+    if (tokens[0] == "stride num") {
+      config.stride_num = boost::lexical_cast<uint32_t>(trim(tokens[1]));
+      continue;
+    }
+    if (tokens[0] == "stride distance") {
+      config.stride_distance = boost::lexical_cast<float>(trim(tokens[1]));
+      continue;
+    }
 
     if (tokens[0] == "min extent") {
       auto coords = parseList<float>(tokens[1]);
+      config.minExtent = Eigen::Vector4f(coords[0], coords[1], coords[2], 1.0f);
+      continue;
+    }
+
+    if (tokens[0] == "max extent") {
+      auto coords = parseList<float>(tokens[1]);
+      config.maxExtent = Eigen::Vector4f(coords[0], coords[1], coords[2], 1.0f);
+
+      continue;
     }
 
     if (tokens[0] == "ignore") {
       config.filteredLabels = parseList<uint32_t>(tokens[1]);
+
+      continue;
     }
 
     if (tokens[0] == "join") {
@@ -104,7 +144,11 @@ Config parseConfiguration(const std::string& filename) {
         uint32_t label = boost::lexical_cast<uint32_t>(trim(mapping[0]));
         config.joinedLabels[label] = parseList<uint32_t>(mapping[1]);
       }
+
+      continue;
     }
+
+    std::cout << "unknown parameter: " << tokens[0] << std::endl;
   }
 
   in.close();

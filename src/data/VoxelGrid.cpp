@@ -22,6 +22,9 @@ void VoxelGrid::initialize(float resolution, const Eigen::Vector4f& min, const E
 
   occlusions_.resize(sizex_ * sizey_ * sizez_);
   occludedBy_.resize(sizex_ * sizey_ * sizez_);
+
+  std::cout << "[Voxelgrid::initialize] " << resolution_ << "; num. voxels = [" << sizex_ << ", " << sizey_ << ", " << sizez_
+            << "], maxExtent = " << max << ", minExtent" << min << std::endl;
 }
 
 void VoxelGrid::clear() {
