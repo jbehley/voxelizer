@@ -21,6 +21,7 @@ void VoxelGrid::initialize(float resolution, const Eigen::Vector4f& min, const E
   //    center_[3] = 0;
 
   occlusions_.resize(sizex_ * sizey_ * sizez_);
+  occludedBy_.resize(sizex_ * sizey_ * sizez_);
 }
 
 void VoxelGrid::clear() {
@@ -87,11 +88,14 @@ void VoxelGrid::insertOcclusionLabels() {
 }
 
 void VoxelGrid::updateOcclusions() {
+  std::fill(occludedBy_.begin(), occludedBy_.end(), -2);
   for (uint32_t i = 0; i < sizex_; ++i) {
     for (uint32_t j = 0; j < sizey_; ++j) {
       for (uint32_t k = 0; k < sizez_; ++k) {
-        occlusions_[index(i, j, k)] = occludedBy(i, j, k);
-        if (occlusions_[index(i, j, k)] != index(i, j, k)) occluded_.push_back(index(i, j, k));
+        int32_t idx = index(i, j, k);
+        occludedBy_[idx] = occludedBy(i, j, k);
+        occlusions_[idx] = occludedBy_[idx];
+        if (occlusions_[idx] != idx) occluded_.push_back(idx);
       }
     }
   }
@@ -101,12 +105,14 @@ void VoxelGrid::updateOcclusions() {
 }
 
 void VoxelGrid::updateInvalid(const Eigen::Vector3f& position) {
+  std::fill(occludedBy_.begin(), occludedBy_.end(), -2);
   for (uint32_t x = 0; x < sizex_; ++x) {
     for (uint32_t y = 0; y < sizey_; ++y) {
       for (uint32_t z = 0; z < sizez_; ++z) {
         int32_t idx = index(x, y, z);
         // idea: if voxel is not occluded, the value should be -1.
-        invalid_[idx] = std::min<int32_t>(invalid_[idx], occludedBy(x, y, z, position));
+        occludedBy_[idx] = occludedBy(x, y, z, position);
+        invalid_[idx] = std::min<int32_t>(invalid_[idx], occludedBy_[idx]);
       }
     }
   }
@@ -156,6 +162,10 @@ int32_t VoxelGrid::occludedBy(int32_t i, int32_t j, int32_t k, const Eigen::Vect
 
   const int32_t cmpToAxis[8] = {2, 1, 2, 1, 2, 2, 0, 0};
   int32_t iteration = 0;
+
+  std::vector<uint32_t> traversed;
+  traversed.reserve(std::max(sizex_, std::max(sizey_, sizez_)));
+
   for (;;)  // loop infinitely...
   {
     if (Pos[0] < 0 || Pos[1] < 0 || Pos[2] < 0) break;
@@ -164,6 +174,9 @@ int32_t VoxelGrid::occludedBy(int32_t i, int32_t j, int32_t k, const Eigen::Vect
     int32_t idx = index(Pos[0], Pos[1], Pos[2]);
     bool occupied = voxels_[idx].count > 0;
     if (visited != nullptr) visited->push_back(Eigen::Vector3i(Pos[0], Pos[1], Pos[2]));
+    if (occludedBy_[idx] > -2) {
+      return occludedBy_[idx];
+    }
 
     if (occupied) return idx;
 

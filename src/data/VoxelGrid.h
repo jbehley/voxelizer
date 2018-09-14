@@ -115,6 +115,8 @@ class VoxelGrid {
   std::vector<int32_t> invalid_;
   bool occlusionsValid_{false};
   std::vector<uint32_t> occluded_;  // filled by updateOcclusions.
+
+  std::vector<int32_t> occludedBy_;
 };
 
 #endif /* SRC_DATA_VOXELGRID_H_ */
