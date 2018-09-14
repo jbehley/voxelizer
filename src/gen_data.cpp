@@ -124,6 +124,11 @@ int32_t main(int32_t argc, char** argv) {
       count += 1;
       current += 1;
     }
+
+    if ((count < config.stride_num || distance < config.stride_distance || count == 0) && current + 1 >= poses.size()) {
+      // no further scan can be extracted possible.
+      break;
+    }
   }
 
   return 0;
