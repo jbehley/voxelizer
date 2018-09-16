@@ -456,7 +456,8 @@ void Viewport::paintGL() {
     prgDrawVoxels_.setUniform(GlUniform<vec3>("lightPos", vec3(-10, 0, 10)));
     Eigen::Vector4f viewpos_rose = conversion_.inverse() * mCamera.getPosition();
     prgDrawVoxels_.setUniform(GlUniform<bool>("use_custom_color", true));
-    prgDrawVoxels_.setUniform(GlUniform<float>("voxelSize", voxelSize_ - 0.2));
+
+    prgDrawVoxels_.setUniform(GlUniform<float>("voxelSize", std::max(voxelSize_ - 0.2, 0.05)));
     prgDrawVoxels_.setUniform(GlUniform<vec3>("viewPos", vec3(viewpos_rose.x(), viewpos_rose.y(), viewpos_rose.z())));
     prgDrawVoxels_.setUniform(GlUniform<vec4>("custom_color", vec4(0.3, 0.3, 0.3, 1.0f)));
 
@@ -475,7 +476,7 @@ void Viewport::paintGL() {
     prgDrawVoxels_.setUniform(GlUniform<vec3>("lightPos", vec3(-10, 0, 10)));
     Eigen::Vector4f viewpos_rose = conversion_.inverse() * mCamera.getPosition();
     prgDrawVoxels_.setUniform(GlUniform<bool>("use_custom_color", true));
-    prgDrawVoxels_.setUniform(GlUniform<float>("voxelSize", voxelSize_ - 0.2));
+    prgDrawVoxels_.setUniform(GlUniform<float>("voxelSize", std::max(voxelSize_ - 0.2, 0.05)));
     prgDrawVoxels_.setUniform(GlUniform<vec3>("viewPos", vec3(viewpos_rose.x(), viewpos_rose.y(), viewpos_rose.z())));
     prgDrawVoxels_.setUniform(GlUniform<vec4>("custom_color", vec4(0.3, 0.3, 0.3, 1.0f)));
 
