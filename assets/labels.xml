@@ -25,11 +25,22 @@
 		<id>10</id>
 		<name>car</name>
 		<description>This includes cars, jeeps, SUVs, vans with a continuous body shape (i.e. the driver cabin and cargo compartment are one)</description>
-		<color>100 150 245</color>
+		<color>150 170 200</color>
 		<root>vehicle</root>
 		<macro>vehicle</macro>
 		<category>car</category>
 		<moving>252</moving>
+	</label>
+	<label>
+		<id>110</id>
+		<name>autoauto</name>
+		<description>This label represents automatically generated cars.</description>
+		<!--<color>100 150 245</color>-->
+		<color>100 0 0</color>
+		<root>vehicle</root>
+		<macro>vehicle</macro>
+		<category>autoauto</category>
+		<moving>210</moving>
 	</label>
   <label>
 		<id>11</id>

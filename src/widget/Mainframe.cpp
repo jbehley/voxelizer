@@ -155,16 +155,21 @@ void Mainframe::open() {
     }
 
     reader_.initialize(retValue);
+    carReader_.initialize(retValue,Car::loadCarModels("../cars"));
+
+
 
     //    ui.sldTimeline->setMaximum(reader_.count());
     ui.btnBackward->setEnabled(false);
     ui.btnForward->setEnabled(false);
     if (reader_.count() > 0) ui.btnForward->setEnabled(true);
 
+
+
     //    if (ui.sldTimeline->value() == 0) setCurrentScanIdx(0);
     //    ui.sldTimeline->setValue(0);
 
-    readerFuture_ = std::async(std::launch::async, &Mainframe::readAsync, this, 0);
+    readerFuture_ = std::async(std::launch::async, &Mainframe::readAsync, this, -1);
 
     ui.sldTimeline->setEnabled(false);
     ui.sldTimeline->setMaximum(reader_.count());
@@ -195,9 +200,46 @@ void Mainframe::setCurrentScanIdx(int32_t idx) {
   ui.sldTimeline->setEnabled(false);
 }
 
-void Mainframe::readAsync(uint32_t idx) {
+void Mainframe::readAsync(int32_t idx_) {
   // TODO progress indicator.
+  uint32_t idx;
   emit readerStarted();
+  if (idx_==-1){
+    idx=0;
+  }else{
+    idx=idx_;
+  }
+  if(idx_==-1){
+    std::cout<<"init carPoints"<<std::endl;
+    carPoints_.clear();
+    carLabels_.clear();
+    
+    
+    std::vector<Car> c;
+    carReader_.load(c);
+    int car_no = 0;
+    for(const auto& i:c){
+      carPoints_.push_back(std::make_shared<Laserscan>());
+      carLabels_.push_back(std::make_shared<std::vector<uint32_t>>());
+      std::cout<<i.getModel()<<std::endl;
+      auto cpts = i.getPoints();
+      carPoints_[car_no]->pose = i.getPosition();
+      //carPoints_[car_no]->pose = Eigen::Matrix4f::Identity();
+      for (const auto& pt:(*cpts)){
+        //std::cout<<pt.x<<" "<<pt.y<<" "<<pt.z<<" "<<std::endl;
+        Point3f p;
+        p.x = pt.x;
+        p.y = pt.y;
+        p.z = pt.z;
+        carPoints_[car_no]->points.push_back(p);
+        carLabels_[car_no]->push_back(110);
+      }
+      std::cout<< carPoints_[car_no]->points.size()<<" car points loaded"<<std::endl;
+      car_no++;
+    }
+
+
+  }
 
   ui.sldTimeline->setEnabled(false);
 
@@ -243,10 +285,29 @@ void Mainframe::buildVoxelGrids() {
   if (priorPoints_.size() > 0) {
     Eigen::Matrix4f anchor_pose = priorPoints_.back()->pose;
 
+    //fill train Grid
     fillVoxelGrid(anchor_pose, priorPoints_, priorLabels_, priorVoxelGrid_, config);
 
+    //fill test Grid
     fillVoxelGrid(anchor_pose, priorPoints_, priorLabels_, pastVoxelGrid_, config);
     fillVoxelGrid(anchor_pose, pastPoints_, pastLabels_, pastVoxelGrid_, config);
+
+    //create a slightly different config for AutoAuto models
+    Config carconf;
+    carconf.minRange = 0.;
+    carconf.maxRange = 64.;
+    carconf.hidecar = false;
+    carconf.maxExtent = config.maxExtent;
+    carconf.minExtent = config.minExtent;
+    carconf.maxNumScans = config.maxNumScans;
+    carconf.pastScans= config.pastScans;
+    carconf.pastDistance = config.pastDistance;
+    carconf.filteredLabels = config.filteredLabels;
+    carconf.joinedLabels = config.joinedLabels;
+    carconf.stride_num = config.stride_num;
+    carconf.stride_distance = config.stride_distance;
+
+    fillVoxelGrid(anchor_pose, carPoints_, carLabels_, pastVoxelGrid_, carconf);
 
     // updating occlusions.
     //    std::cout << "updating occlusions." << std::endl;
@@ -267,6 +328,7 @@ void Mainframe::buildVoxelGrids() {
     // extract voxels and labels.
     extractLabeledVoxels(priorVoxelGrid_, priorVoxels_);
     extractLabeledVoxels(pastVoxelGrid_, pastVoxels_);
+
 
     //    std::cout << "end" << std::endl;
   }

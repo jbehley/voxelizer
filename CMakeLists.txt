@@ -72,11 +72,16 @@ add_executable(voxelizer
   src/data/misc.cpp
   src/voxelizer.cpp
   src/widget/Mainframe.h
+  src/widget/Car.cpp
+  src/widget/Car.h
+  src/widget/CarReader.cpp
+  src/widget/CarReader.h
   src/widget/Viewport.h
   src/widget/Mainframe.cpp
   src/widget/Viewport.cpp
   src/widget/KittiReader.cpp
   src/data/voxelize_utils.cpp
+
 )
 
 add_executable(gen_data 

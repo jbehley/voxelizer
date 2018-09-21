@@ -12,6 +12,7 @@
 
 #include "data/VoxelGrid.h"
 #include "data/voxelize_utils.h"
+#include "CarReader.h"
 
 // TODO: undo.
 
@@ -34,7 +35,7 @@ class Mainframe : public QMainWindow {
   void buildVoxelgridFinished();
 
  protected:
-  void readAsync(uint32_t idx);
+  void readAsync(int32_t idx);
 
   void buildVoxelGrids();
 
@@ -80,6 +81,9 @@ class Mainframe : public QMainWindow {
   std::vector<PointcloudPtr> pastPoints_;
   std::vector<LabelsPtr> pastLabels_;
 
+  std::vector<PointcloudPtr> carPoints_;
+  std::vector<LabelsPtr> carLabels_;
+
 //  std::vector<uint32_t> filteredLabels;
   std::string filename;
 
@@ -98,6 +102,7 @@ class Mainframe : public QMainWindow {
   Point3f midpoint;
 
   KittiReader reader_;
+  CarReader carReader_;
   std::future<void> readerFuture_;
 
   VoxelGrid priorVoxelGrid_;
