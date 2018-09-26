@@ -83,8 +83,11 @@ void VoxelGrid::insertOcclusionLabels() {
           int32_t n = 1;
           while ((k + n < sizez_) && isOccluded(i, j, k + n) && voxels_[index(i, j, k + n)].count == 0) n += 1;
           if (k + n < sizez_ && voxels_[index(i, j, k + n)].count > 0) {
-            voxels_[index(i, j, k)].count = voxels_[index(i, j, k + n)].count;
-            voxels_[index(i, j, k)].labels = voxels_[index(i, j, k + n)].labels;
+            int32_t gidx = index(i, j, k);
+            if (voxels_[gidx].count == 0) occupied_.push_back(gidx);
+
+            voxels_[gidx].count = voxels_[index(i, j, k + n)].count;
+            voxels_[gidx].labels = voxels_[index(i, j, k + n)].labels;
           }
         }
       }
@@ -216,8 +219,6 @@ void VoxelGrid::updateInvalid(const Eigen::Vector3f& position) {
       }
     }
   }
-
-
 
   //  for (uint32_t x = 0; x < sizex_; ++x) {
   //    for (uint32_t y = 0; y < sizey_; ++y) {
