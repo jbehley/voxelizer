@@ -164,25 +164,39 @@ void fillVoxelGrid(const Eigen::Matrix4f& anchor_pose, const std::vector<Pointcl
       mappedLabels[label] = joins.first;
     }
   }
-
+  const auto configminRange = config.minRange;
+  const auto configmaxRange = config.maxRange;
   for (uint32_t t = 0; t < points.size(); ++t) {
-    const Eigen::Matrix4f& pose = points[t]->pose;
-    for (uint32_t i = 0; i < points[t]->points.size(); ++i) {
-      const Point3f& pp = points[t]->points[i];
-      float range = Eigen::Vector3f(pp.x, pp.y, pp.z).norm();
-      if (range < config.minRange || range > config.maxRange) continue;
-      bool is_car_point = (pp.x < 3.0 && pp.x > -2.0 && std::abs(pp.y) < 2.0);
+    const auto points_t = points[t];
+    const Eigen::Matrix4f& pose = points_t->pose;
+    //std::cout<<pose<<std::endl;
+    const uint32_t points_t_size=points_t->points.size();
+    int outpts=0;
+    Eigen::Matrix4f ap = anchor_pose.inverse() * pose;
+    const auto labels_t=(*labels[t]);
+    for (uint32_t i = 0; i < points_t_size; ++i) {
+      const Point3f& pp = points_t->points[i];
+      const auto ppx = pp.x;
+      const auto ppy = pp.y;
+      const auto ppz = pp.z;
+      float range = Eigen::Vector3f(ppx, ppy, ppz).norm();
+      if (range < configminRange || range > configmaxRange) continue;
+      bool is_car_point = (config.hidecar && ppx < 3.0 && ppx > -2.0 && std::abs(ppy) < 2.0);
       if (is_car_point) continue;
 
-      Eigen::Vector4f p = anchor_pose.inverse() * pose * Eigen::Vector4f(pp.x, pp.y, pp.z, 1);
+      Eigen::Vector4f p = ap * Eigen::Vector4f(ppx, ppy, ppz, 1);
 
-      uint32_t label = (*labels[t])[i];
+      uint32_t label = labels_t[i];
       if (mappedLabels.find(label) != mappedLabels.end()) label = mappedLabels[label];
 
       if (std::find(config.filteredLabels.begin(), config.filteredLabels.end(), label) == config.filteredLabels.end()) {
-        grid.insert(p, (*labels[t])[i]);
+        grid.insert(p, labels_t[i]);
+        //std::cout<<"."<<std::flush;
+        outpts++;
       }
     }
+    //std::cout<<outpts<<"/"<<points_t->points.size()<<std::endl;
+
   }
 }
 
