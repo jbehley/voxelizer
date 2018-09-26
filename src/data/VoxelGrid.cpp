@@ -33,13 +33,13 @@ void VoxelGrid::clear() {
     voxels_[idx].labels.clear();
   }
 
-  for (auto idx : occluded_) {
-    voxels_[idx].count = 0;
-    voxels_[idx].labels.clear();
-  }
+  //  for (auto idx : occluded_) {
+  //    voxels_[idx].count = 0;
+  //    voxels_[idx].labels.clear();
+  //  }
 
   occupied_.clear();
-  occluded_.clear();
+  //  occluded_.clear();
 }
 
 void VoxelGrid::insert(const Eigen::Vector4f& p, uint32_t label) {
@@ -98,7 +98,9 @@ void VoxelGrid::updateOcclusions() {
   uint32_t occludedByCalls = 0;
 
   // move from outer to inner voxels.
-  for (uint32_t o = 0; o < sizex_; ++o) {
+  uint32_t num_shells = std::min<uint32_t>(sizex_, std::ceil(0.5 * sizey_));
+
+  for (uint32_t o = 0; o < num_shells; ++o) {
     uint32_t i = sizex_ - o - 1;
 
     for (uint32_t j = 0; j < sizey_; ++j) {
@@ -109,12 +111,12 @@ void VoxelGrid::updateOcclusions() {
           occludedBy_[idx] = occludedBy(i, j, k);
         }
         occlusions_[idx] = occludedBy_[idx];
-        if (occlusions_[idx] != idx) occluded_.push_back(idx);
+        //        if (occlusions_[idx] != idx) occluded_.push_back(idx);
       }
     }
 
     uint32_t j = o;
-    for (uint32_t i = 0; i < sizex_ - o; ++i) {
+    for (uint32_t i = 0; i < sizex_ - o - 1; ++i) {
       for (uint32_t k = 0; k < sizez_; ++k) {
         int32_t idx = index(i, j, k);
         if (occludedBy_[idx] == -2) {
@@ -122,12 +124,12 @@ void VoxelGrid::updateOcclusions() {
           occludedBy_[idx] = occludedBy(i, j, k);
         }
         occlusions_[idx] = occludedBy_[idx];
-        if (occlusions_[idx] != idx) occluded_.push_back(idx);
+        //          if (occlusions_[idx] != idx) occluded_.push_back(idx);
       }
     }
 
     j = sizey_ - o - 1;
-    for (uint32_t i = 0; i < sizex_ - o; ++i) {
+    for (uint32_t i = 0; i < sizex_ - o - 1; ++i) {
       for (uint32_t k = 0; k < sizez_; ++k) {
         int32_t idx = index(i, j, k);
         if (occludedBy_[idx] == -2) {
@@ -135,9 +137,14 @@ void VoxelGrid::updateOcclusions() {
           occludedBy_[idx] = occludedBy(i, j, k);
         }
         occlusions_[idx] = occludedBy_[idx];
-        if (occlusions_[idx] != idx) occluded_.push_back(idx);
+        //          if (occlusions_[idx] != idx) occluded_.push_back(idx);
       }
     }
+  }
+
+  // sanity check:
+  for (uint32_t i = 0; i < occludedBy_.size(); ++i) {
+    if (occludedBy_[i] == -2) std::cout << "occludedBy == -2" << std::endl;
   }
 
   //  for (uint32_t i = 0; i < sizex_; ++i) {
@@ -166,7 +173,9 @@ void VoxelGrid::updateInvalid(const Eigen::Vector3f& position) {
   std::fill(occludedBy_.begin(), occludedBy_.end(), -2);
 
   // move from outer to inner voxels.
-  for (uint32_t o = 0; o < sizex_; ++o) {
+  uint32_t num_shells = std::min<uint32_t>(sizex_, std::ceil(0.5 * sizey_));
+
+  for (uint32_t o = 0; o < num_shells; ++o) {
     uint32_t i = sizex_ - o - 1;
 
     for (uint32_t j = 0; j < sizey_; ++j) {
@@ -182,7 +191,7 @@ void VoxelGrid::updateInvalid(const Eigen::Vector3f& position) {
     }
 
     uint32_t j = o;
-    for (uint32_t i = 0; i < sizex_ - o; ++i) {
+    for (uint32_t i = 0; i < sizex_ - o - 1; ++i) {
       for (uint32_t k = 0; k < sizez_; ++k) {
         int32_t idx = index(i, j, k);
         if (invalid_[idx] == -1) continue;  // just skip. invalid cannot be less then -1.
@@ -195,7 +204,7 @@ void VoxelGrid::updateInvalid(const Eigen::Vector3f& position) {
     }
 
     j = sizey_ - o - 1;
-    for (uint32_t i = 0; i < sizex_ - o; ++i) {
+    for (uint32_t i = 0; i < sizex_ - o - 1; ++i) {
       for (uint32_t k = 0; k < sizez_; ++k) {
         int32_t idx = index(i, j, k);
         if (invalid_[idx] == -1) continue;  // just skip. invalid cannot be less then -1.
@@ -207,6 +216,8 @@ void VoxelGrid::updateInvalid(const Eigen::Vector3f& position) {
       }
     }
   }
+
+
 
   //  for (uint32_t x = 0; x < sizex_; ++x) {
   //    for (uint32_t y = 0; y < sizey_; ++y) {

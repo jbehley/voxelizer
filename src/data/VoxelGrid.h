@@ -2,6 +2,7 @@
 #define SRC_DATA_VOXELGRID_H_
 
 #include <eigen3/Eigen/Dense>
+#include <iostream>
 #include <map>
 #include <vector>
 
@@ -40,7 +41,7 @@ class VoxelGrid {
   uint32_t num_elements() const { return sizex_ * sizey_ * sizez_; }
 
   /** \brief get size in specific dimension **/
-  uint32_t size(uint32_t dim) const { return (&sizex_)[std::max<uint32_t>(std::min<uint32_t>(dim, 3), 0)]; }
+  uint32_t size(uint32_t dim) const { return (&sizex_)[std::max<uint32_t>(std::min<uint32_t>(dim, 2), 0)]; }
 
   /** \brief resolutions aka sidelength of a voxel **/
   float resolution() const { return resolution_; }
@@ -100,7 +101,21 @@ class VoxelGrid {
                            (pos[2] - offset_[2]) / resolution_);
   }
 
-  inline int32_t index(int32_t i, int32_t j, int32_t k) const { return i + j * sizex_ + k * sizex_ * sizey_; }
+  inline int32_t index(int32_t i, int32_t j, int32_t k) const {
+    if (i >= sizex_ || j >= sizey_ || k >= sizez_) {
+      std::cout << sizex_ << ", " << sizey_ << ", " << sizez_ << std::endl;
+      std::cout << i << ", " << j << ", " << k << std::endl;
+
+      std::cout << "indexes to large." << std::endl;
+    }
+    if (i < 0 || j < 0 || k < 0) {
+
+      std::cout << i << ", " << j << ", " << k << std::endl;
+
+      std::cout << "indexes too small" << std::endl;
+    }
+    return i + j * sizex_ + k * sizex_ * sizey_;
+  }
 
  protected:
   float resolution_;
@@ -114,7 +129,7 @@ class VoxelGrid {
   std::vector<int32_t> occlusions_;  // filled by updateOcclusions.
   std::vector<int32_t> invalid_;
   bool occlusionsValid_{false};
-  std::vector<uint32_t> occluded_;  // filled by updateOcclusions.
+//  std::vector<uint32_t> occluded_;  // filled by updateOcclusions.
 
   std::vector<int32_t> occludedBy_;
 };

@@ -243,30 +243,45 @@ void Mainframe::buildVoxelGrids() {
   if (priorPoints_.size() > 0) {
     Eigen::Matrix4f anchor_pose = priorPoints_.back()->pose;
 
+    std::cout << "fill grids..." << std::flush;
     fillVoxelGrid(anchor_pose, priorPoints_, priorLabels_, priorVoxelGrid_, config);
 
     fillVoxelGrid(anchor_pose, priorPoints_, priorLabels_, pastVoxelGrid_, config);
     fillVoxelGrid(anchor_pose, pastPoints_, pastLabels_, pastVoxelGrid_, config);
+    std::cout << "finished." << std::endl;
 
     // updating occlusions.
-    //    std::cout << "updating occlusions." << std::endl;
+    std::cout << "updating occlusions..." << std::flush;
+
     priorVoxelGrid_.updateOcclusions();
     pastVoxelGrid_.updateOcclusions();
+    std::cout << "finished." << std::endl;
 
+    std::cout << "insert occlusion labels..." << std::flush;
     priorVoxelGrid_.insertOcclusionLabels();
     pastVoxelGrid_.insertOcclusionLabels();
+    std::cout << std::endl;
 
+    std::cout << "update invalid..." << std::flush;
     for (uint32_t i = 0; i < pastPoints_.size(); ++i) {
       Eigen::Vector3f endpoint = (anchor_pose.inverse() * pastPoints_[i]->pose).col(3).head(3);
       pastVoxelGrid_.updateInvalid(endpoint);
     }
+    std::cout << "finished." << std::endl;
 
+    std::cout << "Updating visualized voxels..." << std::flush;
     // only visualization code.
     priorVoxels_.clear();
     pastVoxels_.clear();
     // extract voxels and labels.
     extractLabeledVoxels(priorVoxelGrid_, priorVoxels_);
     extractLabeledVoxels(pastVoxelGrid_, pastVoxels_);
+    std::cout << "finished." << std::endl;
+
+    std::cout << "Used " << (priorVoxelGrid_.voxels().size() * sizeof(LabeledVoxel)) / (1000 * 1000)
+              << " MB for visualization." << std::endl;
+    std::cout << "Used " << (pastVoxelGrid_.voxels().size() * sizeof(LabeledVoxel)) / (1000 * 1000)
+              << " MB for visualization." << std::endl;
 
     //    std::cout << "end" << std::endl;
   }
