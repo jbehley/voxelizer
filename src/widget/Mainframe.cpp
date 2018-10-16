@@ -47,7 +47,10 @@ Mainframe::Mainframe() : mChangesSinceLastSave(false) {
           [this](bool value) { ui.mViewportXYZ->setDrawingOption("show train", value); });
 
   connect(ui.spinVoxelSize, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged),
-          [this](double value) { updateVoxelSize(value); });
+          [this](double value) {
+            config.voxelSize = value;
+            updateVoxelSize(value);
+          });
 
   connect(this, &Mainframe::buildVoxelgridStarted, this, &Mainframe::disableGui);
   connect(this, &Mainframe::buildVoxelgridFinished, this, &Mainframe::enableGui);
@@ -104,6 +107,51 @@ Mainframe::Mainframe() : mChangesSinceLastSave(false) {
   ui.mViewportXYZ->setMaxRange(config.maxRange);
   ui.spinMaxRange->setValue(config.maxRange);
   ui.mViewportXYZ->setMinRange(config.minRange);
+
+  ui.spinMinExtentX->setValue(config.minExtent.x());
+  ui.spinMinExtentY->setValue(config.minExtent.y());
+  ui.spinMinExtentZ->setValue(config.minExtent.z());
+  ui.spinMaxExtentX->setValue(config.maxExtent.x());
+  ui.spinMaxExtentY->setValue(config.maxExtent.y());
+  ui.spinMaxExtentZ->setValue(config.maxExtent.z());
+
+  // extent update.
+
+  connect(ui.spinMaxExtentX, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged),
+          [this](int32_t value) {
+            config.maxExtent.x() = value;
+            updateExtent();
+          });
+
+  connect(ui.spinMaxExtentY, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged),
+          [this](int32_t value) {
+            config.maxExtent.y() = value;
+            updateExtent();
+          });
+
+  connect(ui.spinMaxExtentZ, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged),
+          [this](int32_t value) {
+            config.maxExtent.z() = value;
+            updateExtent();
+          });
+
+  connect(ui.spinMinExtentX, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged),
+          [this](int32_t value) {
+            config.minExtent.x() = value;
+            updateExtent();
+          });
+
+  connect(ui.spinMinExtentY, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged),
+          [this](int32_t value) {
+            config.minExtent.y() = value;
+            updateExtent();
+          });
+
+  connect(ui.spinMinExtentZ, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged),
+          [this](int32_t value) {
+            config.minExtent.z() = value;
+            updateExtent();
+          });
 
   priorVoxelGrid_.initialize(config.voxelSize, config.minExtent, config.maxExtent);
   pastVoxelGrid_.initialize(config.voxelSize, config.minExtent, config.maxExtent);
@@ -460,6 +508,13 @@ void Mainframe::updateVoxelSize(float voxelSize) {
   voxelSize = std::max<float>(0.01, voxelSize);
   priorVoxelGrid_.initialize(voxelSize, config.minExtent, config.maxExtent);
   pastVoxelGrid_.initialize(voxelSize, config.minExtent, config.maxExtent);
+
+  readerFuture_ = std::async(std::launch::async, &Mainframe::buildVoxelGrids, this);
+}
+
+void Mainframe::updateExtent() {
+  priorVoxelGrid_.initialize(config.voxelSize, config.minExtent, config.maxExtent);
+  pastVoxelGrid_.initialize(config.voxelSize, config.minExtent, config.maxExtent);
 
   readerFuture_ = std::async(std::launch::async, &Mainframe::buildVoxelGrids, this);
 }

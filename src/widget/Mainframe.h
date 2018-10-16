@@ -55,6 +55,8 @@ class Mainframe : public QMainWindow {
   /** \brief update voxel size / resolution of voxel grid. **/
   void updateVoxelSize(float value);
 
+  void updateExtent();
+
   void updateOccludedVoxels();
 
   /** \brief determine invalid voxels. **/
