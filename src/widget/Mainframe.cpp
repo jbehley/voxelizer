@@ -308,6 +308,14 @@ void Mainframe::disableGui() {
   ui.spinPastScans->setEnabled(false);
   ui.spinPriorScans->setEnabled(false);
   ui.sldTimeline->setEnabled(false);
+  ui.spinMaxRange->setEnabled(false);
+
+  ui.spinMaxExtentX->setEnabled(false);
+  ui.spinMaxExtentY->setEnabled(false);
+  ui.spinMaxExtentZ->setEnabled(false);
+  ui.spinMinExtentX->setEnabled(false);
+  ui.spinMinExtentY->setEnabled(false);
+  ui.spinMinExtentZ->setEnabled(false);
 }
 
 void Mainframe::enableGui() {
@@ -315,6 +323,14 @@ void Mainframe::enableGui() {
   ui.spinPastScans->setEnabled(true);
   ui.spinPriorScans->setEnabled(true);
   ui.sldTimeline->setEnabled(true);
+  ui.spinMaxRange->setEnabled(true);
+
+  ui.spinMaxExtentX->setEnabled(true);
+  ui.spinMaxExtentY->setEnabled(true);
+  ui.spinMaxExtentZ->setEnabled(true);
+  ui.spinMinExtentX->setEnabled(true);
+  ui.spinMinExtentY->setEnabled(true);
+  ui.spinMinExtentZ->setEnabled(true);
 }
 
 void Mainframe::buildVoxelGrids() {
