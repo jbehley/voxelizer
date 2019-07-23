@@ -8,10 +8,12 @@
 #include <sstream>
 #include "rv/string_utils.h"
 
-void KittiReader::initialize(const QString& sequence_dir, const QString& input_label_dir) {
+void KittiReader::initialize(const QString& sequence_dir, const QString& input_label_dirname) {
   velodyne_filenames_.clear();
 
   QDir base_dir(sequence_dir);
+  QDir base_label_dir(input_label_dirname);
+  QDir input_label_dir(base_label_dir.filePath("labels"));
   QDir velodyne_dir(base_dir.filePath("velodyne"));
   if (!velodyne_dir.exists()) throw std::runtime_error("Missing velodyne files.");
   QStringList entries = velodyne_dir.entryList(QDir::Files, QDir::Name);

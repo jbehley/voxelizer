@@ -17,8 +17,7 @@ float poseDistance(const Eigen::Matrix4f& A, const Eigen::Matrix4f& B) {
   return (A.col(3).head(3) - B.col(3).head(3)).norm();
 }
 
-const c_str input_dirname = "input";
-const c_str target_dirname = "target_gt"
+
 
 
 int32_t main(int32_t argc, char** argv) {
@@ -37,20 +36,26 @@ int32_t main(int32_t argc, char** argv) {
   std::string input_label_dirname = argv[3];
   std::string output_voxel_dirname = argv[4];
 
+  const std::string input_dirname("input_voxel");
+  const std::string target_dirname("target_voxel_gt");
+  QDir input_dirname_qdir(QString::fromStdString(input_dirname));
+  QDir target_dirname_qdir(QString::fromStdString(target_dirname));
+
   QDir output_voxel_dir(QString::fromStdString(output_voxel_dirname));
   if (!output_voxel_dir.exists()) {
     std::cout << "Creating output directory: " << output_voxel_dir.absolutePath().toStdString() << std::endl;
     if (!output_voxel_dir.mkpath(output_voxel_dir.absolutePath())) {
       throw std::runtime_error("Unable to create output directory.");
     }
-    output_voxel_dir.mkdir(input_dirname);
-    output_voxel_dir.mkdir(target_dirname);
+    output_voxel_dir.mkdir(input_dirname.c_str());
+    output_voxel_dir.mkdir(target_dirname.c_str());
   }
 
   QDir sequences_dir(QString::fromStdString(sequences_dirname));
 
+
   KittiReader reader;
-  reader.initialize(QString::fromStdString(sequences_dir));
+  reader.initialize(QString::fromStdString(sequences_dirname), QString::fromStdString(input_label_dirname));
 
   reader.setNumPriorScans(config.priorScans);
   reader.setNumPastScans(config.pastScans);
@@ -123,8 +128,8 @@ int32_t main(int32_t argc, char** argv) {
       std::cout << "update invalid took " << Stopwatch::toc() << std::endl;
       
       // store grid in mat file.
-      saveVoxelGrid(priorGrid, output_voxel_dir + "/" + input_dirname + "/" + outname.str());
-      saveVoxelGrid(pastGrid, output_voxel_dir + "/" + target_dirname + "/" + outname.str());
+      saveVoxelGrid(priorGrid, output_voxel_dirname + "/" + input_dirname + "/" + outname.str());
+      saveVoxelGrid(pastGrid, output_voxel_dirname + "/" + target_dirname + "/" + outname.str());
 
     } else {
       std::cout << "skipped." << std::endl;

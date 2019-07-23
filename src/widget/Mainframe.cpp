@@ -196,13 +196,14 @@ void Mainframe::open() {
 
   if (!retValue.isNull()) {
     QDir base_dir(retValue);
+    QDir base_label_dir(retValue);
 
-    if (!base_dir.exists("velodyne") || !base_dir.exists("poses.txt")) {
-      std::cout << "[ERROR] velodyne or poses.txt missing." << std::endl;
+    if (!base_dir.exists("velodyne") || !base_dir.exists("poses.txt") || !base_label_dir.exists("labels")) {
+      std::cout << "[ERROR] velodyne, labels or poses.txt missing." << std::endl;
       return;
     }
 
-    reader_.initialize(retValue);
+    reader_.initialize(retValue, retValue);
     carReader_.initialize(retValue, Car::loadCarModels("../cars"));
 
     //    ui.sldTimeline->setMaximum(reader_.count());
