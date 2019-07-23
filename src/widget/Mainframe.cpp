@@ -374,10 +374,10 @@ void Mainframe::buildVoxelGrids() {
     pastVoxelGrid_.updateOcclusions();
     std::cout << "finished." << std::endl;
 
-    std::cout << "insert occlusion labels..." << std::flush;
-    priorVoxelGrid_.insertOcclusionLabels();
-    pastVoxelGrid_.insertOcclusionLabels();
-    std::cout << std::endl;
+    // std::cout << "insert occlusion labels..." << std::flush;
+    // priorVoxelGrid_.insertOcclusionLabels();
+    // pastVoxelGrid_.insertOcclusionLabels();
+    // std::cout << std::endl;
 
     std::cout << "update invalid..." << std::flush;
     for (uint32_t i = 0; i < pastPoints_.size(); ++i) {

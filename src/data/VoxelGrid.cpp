@@ -96,6 +96,7 @@ void VoxelGrid::insertOcclusionLabels() {
 }
 
 void VoxelGrid::updateOcclusions() {
+  std::cout << "updating occlusions." << std::endl;
   std::fill(occludedBy_.begin(), occludedBy_.end(), -2);
   std::fill(occlusions_.begin(), occlusions_.end(), -1);
   uint32_t occludedByCalls = 0;

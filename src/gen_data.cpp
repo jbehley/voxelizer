@@ -17,35 +17,40 @@ float poseDistance(const Eigen::Matrix4f& A, const Eigen::Matrix4f& B) {
   return (A.col(3).head(3) - B.col(3).head(3)).norm();
 }
 
-int32_t main(int32_t argc, char** argv) {
-  if (argc < 3) {
-    std::cout << "Usage: ./gen_data <config> <directory> [output_directory]" << std::endl;
+const c_str input_dirname = "input";
+const c_str target_dirname = "target_gt"
 
+
+int32_t main(int32_t argc, char** argv) {
+  if (argc < 4) {
+    std::cout << "Too few arguments" << std::endl;
+    std::cout << "Usage: ./gen_data <config> <sequence-dirname> <input-label-dirname> <output-voxel-dirname>" << std::endl;
+    std::cout << "<config>: config file, containing spatial extent of volume and resolution" << std::endl;
+    std::cout << "<sequence-dirname>: folder containing velodyne, calib.txt, poses.txt, e.g. path/to/00 or path/to/01" << std::endl;
+    std::cout << "<input-label-dirname>: folder containing point-cloud annotation files" << std::endl;
+    std::cout << "<output-voxel-dirname>: output folder containing voxelized input and target volumes" << std::endl;
     return 1;
   }
 
   Config config = parseConfiguration(argv[1]);
+  std::string sequences_dirname = argv[2];
+  std::string input_label_dirname = argv[3];
+  std::string output_voxel_dirname = argv[4];
 
-  std::string input_directory = argv[2];
-  std::string output_dirname = "extracted";
-  if (argc > 3) output_dirname = argv[3];
-
-  QDir output_dir(QString::fromStdString(output_dirname));
-
-  if (!output_dir.exists()) {
-    std::cout << "Creating output directory: " << output_dir.absolutePath().toStdString() << std::endl;
-    if (!output_dir.mkpath(output_dir.absolutePath())) {
+  QDir output_voxel_dir(QString::fromStdString(output_voxel_dirname));
+  if (!output_voxel_dir.exists()) {
+    std::cout << "Creating output directory: " << output_voxel_dir.absolutePath().toStdString() << std::endl;
+    if (!output_voxel_dir.mkpath(output_voxel_dir.absolutePath())) {
       throw std::runtime_error("Unable to create output directory.");
     }
-
-    output_dir.mkdir("input");
-    output_dir.mkdir("label");
+    output_voxel_dir.mkdir(input_dirname);
+    output_voxel_dir.mkdir(target_dirname);
   }
 
-  std::string seq = QDir(QString::fromStdString(input_directory)).dirName().toStdString();
+  QDir sequences_dir(QString::fromStdString(sequences_dirname));
 
   KittiReader reader;
-  reader.initialize(QString::fromStdString(input_directory));
+  reader.initialize(QString::fromStdString(sequences_dir));
 
   reader.setNumPriorScans(config.priorScans);
   reader.setNumPastScans(config.pastScans);
@@ -62,6 +67,8 @@ int32_t main(int32_t argc, char** argv) {
 
   while (current < reader.count()) {
     std::cout << current << std::endl;
+    std::stringstream outname;
+    outname << std::setfill('0') << std::setw(6) << current << ".mat";
 
     std::vector<PointcloudPtr> priorPoints;
     std::vector<LabelsPtr> priorLabels;
@@ -93,22 +100,20 @@ int32_t main(int32_t argc, char** argv) {
 
       Stopwatch::tic();
       fillVoxelGrid(anchor_pose, priorPoints, priorLabels, priorGrid, config);
-
       fillVoxelGrid(anchor_pose, priorPoints, priorLabels, pastGrid, config);
       fillVoxelGrid(anchor_pose, pastPoints, pastLabels, pastGrid, config);
       std::cout << "fill voxelgrid took " << Stopwatch::toc() << std::endl;
 
       Stopwatch::tic();
-      // updating occlusions.
-      //    std::cout << "updating occlusions." << std::endl;
-      priorGrid.updateOcclusions();
+      priorGrid.updateOcclusions();      
       pastGrid.updateOcclusions();
       std::cout << "update occlusions took " << Stopwatch::toc() << std::endl;
-
+    
       Stopwatch::tic();
       priorGrid.insertOcclusionLabels();
       pastGrid.insertOcclusionLabels();
       std::cout << "occlusion labels took " << Stopwatch::toc() << std::endl;
+
 
       Stopwatch::tic();
       for (uint32_t i = 0; i < pastPoints.size(); ++i) {
@@ -116,14 +121,11 @@ int32_t main(int32_t argc, char** argv) {
         pastGrid.updateInvalid(endpoint);
       }
       std::cout << "update invalid took " << Stopwatch::toc() << std::endl;
-
-      Stopwatch::tic();
+      
       // store grid in mat file.
-      std::stringstream outname;
-      outname << seq << "_" << std::setfill('0') << std::setw(6) << current << ".mat";
-      saveVoxelGrid(priorGrid, output_dirname + "/input/" + outname.str());
-      saveVoxelGrid(pastGrid, output_dirname + "/label/" + outname.str());
-      std::cout << "saving took " << Stopwatch::toc() << std::endl;
+      saveVoxelGrid(priorGrid, output_voxel_dir + "/" + input_dirname + "/" + outname.str());
+      saveVoxelGrid(pastGrid, output_voxel_dir + "/" + target_dirname + "/" + outname.str());
+
     } else {
       std::cout << "skipped." << std::endl;
     }

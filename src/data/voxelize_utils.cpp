@@ -247,16 +247,16 @@ void saveVoxelGrid(const VoxelGrid& grid, const std::string& filename) {
 
   // Save 1D-outputTensor as mat file
   mat_t* matfp = Mat_CreateVer(filename.c_str(), NULL, MAT_FT_MAT5);  // or MAT_FT_MAT4 / MAT_FT_MAT73
-  size_t dim[1] = {numElements};
+  size_t dim[3] = {numElements};
 
   matvar_t* variable_data = Mat_VarCreate("data", MAT_C_INT32, MAT_T_INT32, 1, dim, &outputTensor[0], 0);
-  Mat_VarWrite(matfp, variable_data, MAT_COMPRESSION_NONE);  // or MAT_COMPRESSION_ZLIB
+  Mat_VarWrite(matfp, variable_data, MAT_COMPRESSION_ZLIB);  // or MAT_COMPRESSION_ZLIB
 
   matvar_t* variable_mask = Mat_VarCreate("mask", MAT_C_INT32, MAT_T_INT32, 1, dim, &outputTensorOccluded[0], 0);
-  Mat_VarWrite(matfp, variable_mask, MAT_COMPRESSION_NONE);  // or MAT_COMPRESSION_ZLIB
+  Mat_VarWrite(matfp, variable_mask, MAT_COMPRESSION_ZLIB);  // or MAT_COMPRESSION_ZLIB
 
   matvar_t* variable_invalid = Mat_VarCreate("invalid", MAT_C_INT32, MAT_T_INT32, 1, dim, &outputTensorInvalid[0], 0);
-  Mat_VarWrite(matfp, variable_invalid, MAT_COMPRESSION_NONE);  // or MAT_COMPRESSION_ZLIB
+  Mat_VarWrite(matfp, variable_invalid, MAT_COMPRESSION_ZLIB);  // or MAT_COMPRESSION_ZLIB
 
   Mat_VarFree(variable_data);
   Mat_VarFree(variable_mask);

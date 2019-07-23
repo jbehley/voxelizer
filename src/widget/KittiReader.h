@@ -18,7 +18,7 @@
 
 class KittiReader {
  public:
-  void initialize(const QString& directory);
+  void initialize(const QString& sequence_dir);
 
   uint32_t count() const { return velodyne_filenames_.size(); }
 

@@ -8,10 +8,10 @@
 #include <sstream>
 #include "rv/string_utils.h"
 
-void KittiReader::initialize(const QString& directory) {
+void KittiReader::initialize(const QString& sequence_dir, const QString& input_label_dir) {
   velodyne_filenames_.clear();
 
-  QDir base_dir(directory);
+  QDir base_dir(sequence_dir);
   QDir velodyne_dir(base_dir.filePath("velodyne"));
   if (!velodyne_dir.exists()) throw std::runtime_error("Missing velodyne files.");
   QStringList entries = velodyne_dir.entryList(QDir::Files, QDir::Name);
@@ -23,14 +23,7 @@ void KittiReader::initialize(const QString& directory) {
     throw std::runtime_error("Missing calibration file: " + base_dir.filePath("calib.txt").toStdString());
 
   calib_.initialize(base_dir.filePath("calib.txt").toStdString());
-
   readPoses(base_dir.filePath("poses.txt").toStdString(), poses_);
-
-  // create label dir, etc.
-  QDir labels_dir(base_dir.filePath("labels"));
-
-  // find corresponding label files.
-  if (!labels_dir.exists()) base_dir.mkdir("labels");
 
   for (uint32_t i = 0; i < velodyne_filenames_.size(); ++i) {
     std::ifstream in(velodyne_filenames_[i].c_str());
@@ -39,16 +32,13 @@ void KittiReader::initialize(const QString& directory) {
     in.close();
 
     QString filename = QFileInfo(QString::fromStdString(velodyne_filenames_[i])).baseName() + ".label";
-    if (!labels_dir.exists(filename)) {
-      std::ofstream out(labels_dir.filePath(filename).toStdString().c_str());
-
+    if (!input_label_dir.exists(filename)) {
+      std::ofstream out(input_label_dir.filePath(filename).toStdString().c_str());
       std::vector<uint32_t> labels(num_points, 0);
       out.write(reinterpret_cast<const char*>(labels.data()), num_points * sizeof(uint32_t));
-
       out.close();
     }
-
-    label_filenames_.push_back(labels_dir.filePath(filename).toStdString());
+    label_filenames_.push_back(input_label_dir.filePath(filename).toStdString());
   }
 }
 
@@ -184,6 +174,11 @@ void KittiReader::readLabels(const std::string& filename, std::vector<uint32_t>&
 
   labels.resize(num_points);
   in.read((char*)&labels[0], num_points * sizeof(uint32_t));
+
+  for(uint32_t i = 0; i < labels.size(); ++i)
+  {
+    labels[i] = labels[i] & 0xFFFF; // extract label from (instance + label)
+  }
 
   in.close();
 }
