@@ -67,7 +67,7 @@ bool VoxelGrid::isOccluded(int32_t i, int32_t j, int32_t k) const { return occlu
 bool VoxelGrid::isFree(int32_t i, int32_t j, int32_t k) const { return occlusions_[index(i, j, k)] == -1; }
 
 bool VoxelGrid::isInvalid(int32_t i, int32_t j, int32_t k) const {
-  if (int32_t(invalid_.size()) < index(i, j, k)) return true;
+  if (int32_t(invalid_.size()) <= index(i, j, k)) return true;
 
   return (invalid_[index(i, j, k)] > -1) && (invalid_[index(i, j, k)] != index(i, j, k));
 }

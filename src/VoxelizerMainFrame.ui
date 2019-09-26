@@ -130,6 +130,8 @@
    <addaction name="actionOpen"/>
    <addaction name="actionSave"/>
    <addaction name="separator"/>
+   <addaction name="actionRecord"/>
+   <addaction name="actionSnapshot"/>
   </widget>
   <widget class="QDockWidget" name="dockWidget_2">
    <property name="minimumSize">
@@ -165,8 +167,8 @@
          <rect>
           <x>0</x>
           <y>0</y>
-          <width>232</width>
-          <height>556</height>
+          <width>234</width>
+          <height>587</height>
          </rect>
         </property>
         <attribute name="label">
@@ -473,8 +475,8 @@
          <rect>
           <x>0</x>
           <y>0</y>
-          <width>232</width>
-          <height>556</height>
+          <width>234</width>
+          <height>587</height>
          </rect>
         </property>
         <attribute name="label">
@@ -595,6 +597,19 @@
   <action name="actionTiled">
    <property name="text">
     <string>Tiles</string>
+   </property>
+  </action>
+  <action name="actionRecord">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>record</string>
+   </property>
+  </action>
+  <action name="actionSnapshot">
+   <property name="text">
+    <string>snapshot</string>
    </property>
   </action>
  </widget>

@@ -420,7 +420,7 @@ void Viewport::paintGL() {
     prgDrawVoxels_.setUniform(mvp_);
     prgDrawVoxels_.setUniform(GlUniform<vec3>("lightPos", vec3(-10, 0, 10)));
     prgDrawVoxels_.setUniform(GlUniform<bool>("use_custom_color", false));
-    prgDrawVoxels_.setUniform(GlUniform<float>("voxelSize", voxelSize_));
+    prgDrawVoxels_.setUniform(GlUniform<float>("voxelSize", 0.9 * voxelSize_));
 
     Eigen::Vector4f viewpos_rose = conversion_.inverse() * mCamera.getPosition();
 
@@ -584,3 +584,5 @@ void Viewport::setInvalidVoxels(const std::vector<LabeledVoxel>& voxels) {
   bufInvalidVoxels_.assign(voxels);
   updateGL();
 }
+
+

@@ -3,6 +3,7 @@
 
 #include <string>
 #include <map>
+#include <vector>
 #include <eigen3/Eigen/Dense>
 
 /** \brief parse calibration file given in KITTI file format

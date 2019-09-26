@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <widget/KittiReader.h>
 #include <QtCore/QDir>
+#include <algorithm>
 #include <boost/lexical_cast.hpp>
 #include <boost/tokenizer.hpp>
 #include <fstream>
@@ -184,6 +185,8 @@ void KittiReader::readLabels(const std::string& filename, std::vector<uint32_t>&
 
   labels.resize(num_points);
   in.read((char*)&labels[0], num_points * sizeof(uint32_t));
+
+  std::for_each(labels.begin(), labels.end(), [](uint32_t& value) { value = value & 0xFFFF; });
 
   in.close();
 }

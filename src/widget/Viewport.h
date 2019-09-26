@@ -66,6 +66,8 @@ class Viewport : public QGLWidget {
 
   void setOcclusionVoxels(const std::vector<LabeledVoxel>& voxels);
   void setInvalidVoxels(const std::vector<LabeledVoxel>& voxels);
+
+
  signals:
   void labelingChanged();
 

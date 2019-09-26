@@ -4,6 +4,7 @@
 #include <iostream>
 #include <Eigen/Dense>
 #include <memory>
+#include <vector>
 #include <glow/glutil.h>
 #include <map>
 

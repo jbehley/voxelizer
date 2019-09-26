@@ -102,18 +102,18 @@ class VoxelGrid {
   }
 
   inline int32_t index(int32_t i, int32_t j, int32_t k) const {
-    if (i >= sizex_ || j >= sizey_ || k >= sizez_) {
-      std::cout << sizex_ << ", " << sizey_ << ", " << sizez_ << std::endl;
-      std::cout << i << ", " << j << ", " << k << std::endl;
-
-      std::cout << "indexes to large." << std::endl;
-    }
-    if (i < 0 || j < 0 || k < 0) {
-
-      std::cout << i << ", " << j << ", " << k << std::endl;
-
-      std::cout << "indexes too small" << std::endl;
-    }
+    //    if (i >= sizex_ || j >= sizey_ || k >= sizez_) {
+    //      std::cout << sizex_ << ", " << sizey_ << ", " << sizez_ << std::endl;
+    //      std::cout << i << ", " << j << ", " << k << std::endl;
+    //
+    //      std::cout << "indexes to large." << std::endl;
+    //    }
+    //    if (i < 0 || j < 0 || k < 0) {
+    //
+    //      std::cout << i << ", " << j << ", " << k << std::endl;
+    //
+    //      std::cout << "indexes too small" << std::endl;
+    //    }
     return i + j * sizex_ + k * sizex_ * sizey_;
   }
 

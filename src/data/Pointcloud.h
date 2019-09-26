@@ -3,6 +3,7 @@
 
 #include <eigen3/Eigen/Dense>
 #include "geometry.h"
+#include <vector>
 
 /** \brief a laserscan with possibly remission.
  *

@@ -77,6 +77,10 @@ class Mainframe : public QMainWindow {
 
   void extractLabeledVoxels(const VoxelGrid& grid, std::vector<LabeledVoxel>& voxels);
 
+  void startRecording();
+
+  void snap();
+
   std::vector<PointcloudPtr> priorPoints_;
   std::vector<LabelsPtr> priorLabels_;
 
@@ -120,6 +124,11 @@ class Mainframe : public QMainWindow {
 //  Eigen::Vector4f maxExtent;
 
   Config config;
+
+  bool recording_{false};
+  std::string outputDirectory_;
+
+  uint32_t nextScreenshot_{0};
 };
 
 #endif /* MAINFRAME_H_ */

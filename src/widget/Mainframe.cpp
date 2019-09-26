@@ -157,6 +157,17 @@ Mainframe::Mainframe() : mChangesSinceLastSave(false) {
   pastVoxelGrid_.initialize(config.voxelSize, config.minExtent, config.maxExtent);
 
   ui.mViewportXYZ->setVoxelGridProperties(config.voxelSize, priorVoxelGrid_.offset());
+
+  connect(ui.actionRecord, &QAction::triggered, [this]() { startRecording(); });
+  connect(ui.actionSnapshot, &QAction::triggered, [this]() { snap(); });
+
+  QStringList screenshotFiles = QDir(".").entryList();
+
+  for (auto entry : screenshotFiles) {
+    if (entry.startsWith("screenshot")) {
+      nextScreenshot_ += 1;
+    }
+  }
 }
 
 Mainframe::~Mainframe() {}
@@ -351,21 +362,22 @@ void Mainframe::buildVoxelGrids() {
     std::cout << "finished." << std::endl;
 
     // create a slightly different config for AutoAuto models
-    Config carconf;
-    carconf.minRange = 0.;
-    carconf.maxRange = 64.;
-    carconf.hidecar = false;
-    carconf.maxExtent = config.maxExtent;
-    carconf.minExtent = config.minExtent;
-    carconf.maxNumScans = config.maxNumScans;
-    carconf.pastScans = config.pastScans;
-    carconf.pastDistance = config.pastDistance;
-    carconf.filteredLabels = config.filteredLabels;
-    carconf.joinedLabels = config.joinedLabels;
-    carconf.stride_num = config.stride_num;
-    carconf.stride_distance = config.stride_distance;
+//    Config carconf;
+//    carconf.minRange = 0.;
+//    carconf.maxRange = 64.;
+//    carconf.hidecar = false;
+//    carconf.maxExtent = config.maxExtent;
+//    carconf.minExtent = config.minExtent;
+//    carconf.maxNumScans = config.maxNumScans;
+//    carconf.pastScans = config.pastScans;
+//    carconf.pastDistance = config.pastDistance;
+//    carconf.filteredLabels = config.filteredLabels;
+//    carconf.joinedLabels = config.joinedLabels;
+//    carconf.stride_num = config.stride_num;
+//    carconf.stride_distance = config.stride_distance;
 
-    fillVoxelGrid(anchor_pose, carPoints_, carLabels_, pastVoxelGrid_, carconf);
+//    fillVoxelGrid(anchor_pose, carPoints_, carLabels_, pastVoxelGrid_, carconf);
+    std::cout << "carPoints_.size() = " << carPoints_.size() << std::endl;
 
     // updating occlusions.
     std::cout << "updating occlusions..." << std::flush;
@@ -429,6 +441,16 @@ void Mainframe::updateVoxelGrids() {
 
   updateOccludedVoxels();
   updateInvalidVoxels();
+
+  if (recording_) {
+    std::string out_filename = outputDirectory_;
+    out_filename += QString("/%1.png").arg((int)ui.sldTimeline->value(), 5, 10, (QChar)'0').toStdString();
+
+    ui.mViewportXYZ->grabFrameBuffer().save(QString::fromStdString(out_filename));
+    std::cout << "Writing to " << out_filename << std::endl;
+
+    forward();
+  }
 }
 
 void Mainframe::updateOccludedVoxels() {
@@ -557,4 +579,24 @@ void Mainframe::keyPressEvent(QKeyEvent* event) {
   } else if (event->key() == Qt::Key_A || event->key() == Qt::Key_Left) {
     if (ui.btnBackward->isEnabled() && ui.sldTimeline->isEnabled()) backward();
   }
+}
+
+void Mainframe::startRecording() {
+  if (!ui.actionRecord->isChecked()) {
+    recording_ = false;
+  } else {
+    QString retValue = QFileDialog::getExistingDirectory(this, "Select output directory", "");
+    if (!retValue.isNull()) {
+      outputDirectory_ = retValue.toStdString();
+      recording_ = true;
+    }
+  }
+}
+
+void Mainframe::snap() {
+  std::string out_filename = "./";
+  out_filename += QString("screenshot%1.png").arg((int)nextScreenshot_++, 5, 10, (QChar)'0').toStdString();
+
+  ui.mViewportXYZ->grabFrameBuffer().save(QString::fromStdString(out_filename));
+  std::cout << "Writing to " << out_filename << std::endl;
 }
