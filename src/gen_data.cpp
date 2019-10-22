@@ -100,7 +100,7 @@ int32_t main(int32_t argc, char** argv) {
     priorGrid.clear();
     pastGrid.clear();
 
-    if (percentageLabeled > 90.0f) {
+    if (percentageLabeled > 0.0f) {
       Eigen::Matrix4f anchor_pose = priorPoints.back()->pose;
 
       Stopwatch::tic();
@@ -113,11 +113,13 @@ int32_t main(int32_t argc, char** argv) {
       priorGrid.updateOcclusions();      
       pastGrid.updateOcclusions();
       std::cout << "update occlusions took " << Stopwatch::toc() << std::endl;
-    
-      Stopwatch::tic();
-      priorGrid.insertOcclusionLabels();
-      pastGrid.insertOcclusionLabels();
-      std::cout << "occlusion labels took " << Stopwatch::toc() << std::endl;
+
+
+      //# Fill voxels from ground
+      //Stopwatch::tic();
+      //priorGrid.insertOcclusionLabels();
+      //pastGrid.insertOcclusionLabels();
+      //std::cout << "occlusion labels took " << Stopwatch::toc() << std::endl;
 
 
       Stopwatch::tic();
@@ -130,6 +132,11 @@ int32_t main(int32_t argc, char** argv) {
       // store grid in mat file.
       saveVoxelGrid(priorGrid, output_voxel_dirname + "/" + input_dirname + "/" + outname.str());
       saveVoxelGrid(pastGrid, output_voxel_dirname + "/" + target_dirname + "/" + outname.str());
+
+      std::cout << "Saved " << output_voxel_dirname + "/" + input_dirname + "/" + outname.str() << std::endl;
+      std::cout << "Saved " << output_voxel_dirname + "/" + target_dirname + "/" + outname.str() << std::endl;
+      
+       
 
     } else {
       std::cout << "skipped." << std::endl;
