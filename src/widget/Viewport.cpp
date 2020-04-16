@@ -310,18 +310,6 @@ void Viewport::setFilteredLabels(const std::vector<uint32_t>& labels) {
   mFilteredLabels = labels;
   std::sort(mFilteredLabels.begin(), mFilteredLabels.end());
 
-  //  std::vector<uint32_t> difference(std::max(labels_before.size(), labels.size()));
-  //  auto end = std::set_difference(labels_before.begin(), labels_before.end(), mFilteredLabels.begin(),
-  //                                 mFilteredLabels.end(), difference.begin());
-  //
-  //  for (auto it = difference.begin(); it != end; ++it) setLabelVisibility(*it, 1);  // now visible again.
-  //
-  //  end = std::set_difference(mFilteredLabels.begin(), mFilteredLabels.end(), labels_before.begin(),
-  //  labels_before.end(),
-  //                            difference.begin());
-  //
-  //  for (auto it = difference.begin(); it != end; ++it) setLabelVisibility(*it, 0);  // now invisible.
-
   updateGL();
 }
 

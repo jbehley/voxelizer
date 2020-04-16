@@ -12,9 +12,7 @@
 
 #include "data/VoxelGrid.h"
 #include "data/voxelize_utils.h"
-#include "CarReader.h"
 
-// TODO: undo.
 
 /** \brief main widget showing the point cloud and tools to label a point cloud/multiple point clouds. **/
 class Mainframe : public QMainWindow {
@@ -71,7 +69,6 @@ class Mainframe : public QMainWindow {
 
   void setCurrentScanIdx(int32_t idx);
 
-  void closeEvent(QCloseEvent* event);
 
   void readConfig();
 
@@ -87,8 +84,6 @@ class Mainframe : public QMainWindow {
   std::vector<PointcloudPtr> pastPoints_;
   std::vector<LabelsPtr> pastLabels_;
 
-  std::vector<PointcloudPtr> carPoints_;
-  std::vector<LabelsPtr> carLabels_;
 
 //  std::vector<uint32_t> filteredLabels;
   std::string filename;
@@ -108,7 +103,6 @@ class Mainframe : public QMainWindow {
   Point3f midpoint;
 
   KittiReader reader_;
-  CarReader carReader_;
   std::future<void> readerFuture_;
 
   VoxelGrid priorVoxelGrid_;

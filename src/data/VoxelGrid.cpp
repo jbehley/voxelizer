@@ -146,9 +146,9 @@ void VoxelGrid::updateOcclusions() {
   }
 
   // sanity check:
-  for (uint32_t i = 0; i < occludedBy_.size(); ++i) {
-    if (occludedBy_[i] == -2) std::cout << "occludedBy == -2" << std::endl;
-  }
+//  for (uint32_t i = 0; i < occludedBy_.size(); ++i) {
+//    if (occludedBy_[i] == -2) std::cout << "occludedBy == -2" << std::endl;
+//  }
 
   //  for (uint32_t i = 0; i < sizex_; ++i) {
   //    for (uint32_t j = 0; j < sizey_; ++j) {

@@ -1,7 +1,5 @@
 #include "voxelize_utils.h"
 
-#include <matio.h>
-
 #include <rv/string_utils.h>
 #include <boost/lexical_cast.hpp>
 #include <fstream>
@@ -52,7 +50,23 @@ std::vector<std::string> parseList(std::string str) {
   std::vector<std::string> list;
   auto entry_tokens = split(str.substr(1, str.size() - 2), ",");
 
-  for (const auto& token : entry_tokens) list.push_back(token);
+  for (uint32_t i = 0; i < entry_tokens.size(); ++i) {
+    std::string token = entry_tokens[i];
+
+    if (token.find("[") != std::string::npos) {
+      if (token.find("]", token.find("[")) == std::string::npos) {
+        // found a nested unterminated list token
+        std::string next_token;
+        do {
+          if (i >= entry_tokens.size()) break;
+          next_token = entry_tokens[i + 1];
+          token += "," + next_token;
+          ++i;
+        } while (next_token.find("]") == std::string::npos);
+      }
+    }
+    list.push_back(token);
+  }
 
   return list;
 }
@@ -137,12 +151,12 @@ Config parseConfiguration(const std::string& filename) {
     }
 
     if (tokens[0] == "join") {
-      auto join_tokens = parseList<std::string>(tokens[1]);
+      auto join_tokens = parseList<std::string>(trim(tokens[1]));
 
       for (const auto& token : join_tokens) {
         auto mapping = parseDictionary(token);
         uint32_t label = boost::lexical_cast<uint32_t>(trim(mapping[0]));
-        config.joinedLabels[label] = parseList<uint32_t>(mapping[1]);
+        config.joinedLabels[label] = parseList<uint32_t>(trim(mapping[1]));
       }
 
       continue;
@@ -164,56 +178,51 @@ void fillVoxelGrid(const Eigen::Matrix4f& anchor_pose, const std::vector<Pointcl
       mappedLabels[label] = joins.first;
     }
   }
-  const auto configminRange = config.minRange;
-  const auto configmaxRange = config.maxRange;
+
   for (uint32_t t = 0; t < points.size(); ++t) {
-    const auto points_t = points[t];
-    const Eigen::Matrix4f& pose = points_t->pose;
-    //std::cout<<pose<<std::endl;
-    const uint32_t points_t_size=points_t->points.size();
-    int outpts=0;
-    Eigen::Matrix4f ap = anchor_pose.inverse() * pose;
-    const auto labels_t=(*labels[t]);
-    for (uint32_t i = 0; i < points_t_size; ++i) {
-      const Point3f& pp = points_t->points[i];
-      const auto ppx = pp.x;
-      const auto ppy = pp.y;
-      const auto ppz = pp.z;
-      float range = Eigen::Vector3f(ppx, ppy, ppz).norm();
-      if (range < configminRange || range > configmaxRange) continue;
-      bool is_car_point = (config.hidecar && ppx < 3.0 && ppx > -2.0 && std::abs(ppy) < 2.0);
+    Eigen::Matrix4f ap = anchor_pose.inverse() * points[t]->pose;
+
+    for (uint32_t i = 0; i < points[t]->points.size(); ++i) {
+      const Point3f& pp = points[t]->points[i];
+
+      float range = Eigen::Vector3f(pp.x, pp.y, pp.z).norm();
+      if (range < config.minRange || range > config.maxRange) continue;
+      bool is_car_point = (config.hidecar && pp.x < 3.0 && pp.x > -2.0 && std::abs(pp.y) < 2.0);
       if (is_car_point) continue;
 
-      Eigen::Vector4f p = ap * Eigen::Vector4f(ppx, ppy, ppz, 1);
+      Eigen::Vector4f p = ap * Eigen::Vector4f(pp.x, pp.y, pp.z, 1);
 
-      uint32_t label = labels_t[i];
+      uint32_t label = (*labels[t])[i];
       if (mappedLabels.find(label) != mappedLabels.end()) label = mappedLabels[label];
 
       if (std::find(config.filteredLabels.begin(), config.filteredLabels.end(), label) == config.filteredLabels.end()) {
-        grid.insert(p, labels_t[i]);
-        //std::cout<<"."<<std::flush;
-        outpts++;
+        grid.insert(p, (*labels[t])[i]);
       }
     }
-    //std::cout<<outpts<<"/"<<points_t->points.size()<<std::endl;
-
   }
 }
 
-void saveVoxelGrid(const VoxelGrid& grid, const std::string& filename) {
-  //  Eigen::Vector4f offset = grid.offset();
-  //  float voxelSize = grid.resolution();
+template <typename T>
+std::vector<uint8_t> pack(const std::vector<T>& vec) {
+  std::vector<uint8_t> packed(vec.size() / 8);
 
+  for (uint32_t i = 0; i < vec.size(); i += 8) {
+    packed[i / 8] = (vec[i] > 0) << 7 | (vec[i + 1] > 0) << 6 | (vec[i + 2] > 0) << 5 | (vec[i + 3] > 0) << 4 |
+                    (vec[i + 4] > 0) << 3 | (vec[i + 5] > 0) << 2 | (vec[i + 6] > 0) << 1 | (vec[i + 7] > 0);
+    ;
+  }
+
+  return packed;
+}
+
+void saveVoxelGrid(const VoxelGrid& grid, const std::string& directory, const std::string& basename,
+                   const std::string& mode) {
   uint32_t Nx = grid.size(0);
   uint32_t Ny = grid.size(1);
   uint32_t Nz = grid.size(2);
 
-  //  std::cout << "Nx = " << Nx << std::endl;
-  //  std::cout << "Ny = " << Ny << std::endl;
-  //  std::cout << "Nz = " << Nz << std::endl;
-
   size_t numElements = grid.num_elements();
-  std::vector<uint32_t> outputTensor(numElements, 0);
+  std::vector<uint16_t> outputLabels(numElements, 0);
   std::vector<uint32_t> outputTensorOccluded(numElements, 0);
   std::vector<uint32_t> outputTensorInvalid(numElements, 0);
 
@@ -237,31 +246,50 @@ void saveVoxelGrid(const VoxelGrid& grid, const std::string& filename) {
 
         // Write maxLabel appropriately to file.
         counter = counter + 1;
-        outputTensor[counter] = maxLabel;
+        outputLabels[counter] = maxLabel;
         outputTensorOccluded[counter] = isOccluded;
         outputTensorInvalid[counter] = (uint32_t)grid.isInvalid(x, y, z);
       }
     }
   }
-  //  std::cout << "Counter = " << counter << std::endl;
 
-  // Save 1D-outputTensor as mat file
-  mat_t* matfp = Mat_CreateVer(filename.c_str(), NULL, MAT_FT_MAT5);  // or MAT_FT_MAT4 / MAT_FT_MAT73
-  size_t dim[1] = {numElements};
+  if (mode == "target") {
+    // for target we just generate label, invalid, occluded.
+    {
+      std::string output_filename = directory + "/" + basename + ".label";
 
-  matvar_t* variable_data = Mat_VarCreate("data", MAT_C_INT32, MAT_T_INT32, 1, dim, &outputTensor[0], 0);
-  Mat_VarWrite(matfp, variable_data, MAT_COMPRESSION_NONE);  // or MAT_COMPRESSION_ZLIB
+      std::ofstream out(output_filename.c_str());
+      out.write((const char*)&outputLabels[0], outputLabels.size() * sizeof(uint16_t));
+      out.close();
+    }
 
-  matvar_t* variable_mask = Mat_VarCreate("mask", MAT_C_INT32, MAT_T_INT32, 1, dim, &outputTensorOccluded[0], 0);
-  Mat_VarWrite(matfp, variable_mask, MAT_COMPRESSION_NONE);  // or MAT_COMPRESSION_ZLIB
+    {
+      std::string output_filename = directory + "/" + basename + ".occluded";
 
-  matvar_t* variable_invalid = Mat_VarCreate("invalid", MAT_C_INT32, MAT_T_INT32, 1, dim, &outputTensorInvalid[0], 0);
-  Mat_VarWrite(matfp, variable_invalid, MAT_COMPRESSION_NONE);  // or MAT_COMPRESSION_ZLIB
+      std::ofstream out(output_filename.c_str());
+      std::vector<uint8_t> packed = pack(outputTensorOccluded);
+      out.write((const char*)&packed[0], packed.size() * sizeof(uint8_t));
+      out.close();
+    }
 
-  Mat_VarFree(variable_data);
-  Mat_VarFree(variable_mask);
-  Mat_VarFree(variable_invalid);
+    {
+      std::string output_filename = directory + "/" + basename + ".invalid";
 
-  Mat_Close(matfp);
-  //  std::cout << "Done" << std::endl;
+      std::ofstream out(output_filename.c_str());
+      std::vector<uint8_t> packed = pack(outputTensorInvalid);
+      out.write((const char*)&packed[0], packed.size() * sizeof(uint8_t));
+      out.close();
+    }
+
+  } else {
+    // for input we just generate the ".bin" file.
+    {
+      std::string output_filename = directory + "/" + basename + ".bin";
+
+      std::ofstream out(output_filename.c_str());
+      std::vector<uint8_t> packed = pack(outputLabels);
+      out.write((const char*)&packed[0], packed.size() * sizeof(uint8_t));
+      out.close();
+    }
+  }
 }

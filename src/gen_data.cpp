@@ -22,23 +22,17 @@ int32_t main(int32_t argc, char** argv) {
     std::cout << "Too few arguments" << std::endl;
     std::cout << "Usage: ./gen_data <config> <sequence-dirname> <input-label-dirname> <output-voxel-dirname>"
               << std::endl;
-    std::cout << "<config>: config file, containing spatial extent of volume and resolution" << std::endl;
-    std::cout << "<sequence-dirname>: folder containing velodyne, calib.txt, poses.txt, e.g. path/to/00 or path/to/01"
+    std::cout << "  <config>: config file, containing spatial extent of volume and resolution" << std::endl;
+    std::cout << "  <sequence-dirname>: folder containing velodyne, labels, calib.txt, poses.txt, e.g. path/to/00 or "
+                 "path/to/01"
               << std::endl;
-    std::cout << "<input-label-dirname>: folder containing point-cloud annotation files" << std::endl;
-    std::cout << "<output-voxel-dirname>: output folder containing voxelized input and target volumes" << std::endl;
+    std::cout << "  <output-voxel-dirname>: output folder containing voxelized input and target volumes" << std::endl;
     return 1;
   }
 
   Config config = parseConfiguration(argv[1]);
   std::string sequences_dirname = argv[2];
-  std::string input_label_dirname = argv[3];
-  std::string output_voxel_dirname = argv[4];
-
-  const std::string input_dirname("input_voxel");
-  const std::string target_dirname("target_voxel_gt");
-  QDir input_dirname_qdir(QString::fromStdString(input_dirname));
-  QDir target_dirname_qdir(QString::fromStdString(target_dirname));
+  std::string output_voxel_dirname = argv[3];
 
   QDir output_voxel_dir(QString::fromStdString(output_voxel_dirname));
   if (!output_voxel_dir.exists()) {
@@ -46,14 +40,12 @@ int32_t main(int32_t argc, char** argv) {
     if (!output_voxel_dir.mkpath(output_voxel_dir.absolutePath())) {
       throw std::runtime_error("Unable to create output directory.");
     }
-    output_voxel_dir.mkdir(input_dirname.c_str());
-    output_voxel_dir.mkdir(target_dirname.c_str());
   }
 
   QDir sequences_dir(QString::fromStdString(sequences_dirname));
 
   KittiReader reader;
-  reader.initialize(QString::fromStdString(sequences_dirname), QString::fromStdString(input_label_dirname));
+  reader.initialize(QString::fromStdString(sequences_dirname));
 
   reader.setNumPriorScans(config.priorScans);
   reader.setNumPastScans(config.pastScans);
@@ -69,9 +61,9 @@ int32_t main(int32_t argc, char** argv) {
   uint32_t current = 0;
 
   while (current < reader.count()) {
-    std::cout << current << std::endl;
+    //    std::cout << current << std::endl;
     std::stringstream outname;
-    outname << std::setfill('0') << std::setw(6) << current << ".mat";
+    outname << std::setfill('0') << std::setw(6) << current;
 
     std::vector<PointcloudPtr> priorPoints;
     std::vector<LabelsPtr> priorLabels;
@@ -93,7 +85,7 @@ int32_t main(int32_t argc, char** argv) {
     }
 
     float percentageLabeled = 100.0f * labelCount / pointCount;
-    std::cout << percentageLabeled << "% points labeled." << std::endl;
+//    std::cout << percentageLabeled << "% points labeled." << std::endl;
 
     priorGrid.clear();
     pastGrid.clear();
@@ -101,16 +93,16 @@ int32_t main(int32_t argc, char** argv) {
     if (percentageLabeled > 0.0f) {
       Eigen::Matrix4f anchor_pose = priorPoints.back()->pose;
 
-      Stopwatch::tic();
+//      Stopwatch::tic();
       fillVoxelGrid(anchor_pose, priorPoints, priorLabels, priorGrid, config);
       fillVoxelGrid(anchor_pose, priorPoints, priorLabels, pastGrid, config);
       fillVoxelGrid(anchor_pose, pastPoints, pastLabels, pastGrid, config);
-      std::cout << "fill voxelgrid took " << Stopwatch::toc() << std::endl;
+//      std::cout << "fill voxelgrid took " << Stopwatch::toc() << std::endl;
 
-      Stopwatch::tic();
+//      Stopwatch::tic();
       priorGrid.updateOcclusions();
       pastGrid.updateOcclusions();
-      std::cout << "update occlusions took " << Stopwatch::toc() << std::endl;
+//      std::cout << "update occlusions took " << Stopwatch::toc() << std::endl;
 
       //# Fill voxels from ground
       // Stopwatch::tic();
@@ -118,19 +110,17 @@ int32_t main(int32_t argc, char** argv) {
       // pastGrid.insertOcclusionLabels();
       // std::cout << "occlusion labels took " << Stopwatch::toc() << std::endl;
 
-      Stopwatch::tic();
+//      Stopwatch::tic();
       for (uint32_t i = 0; i < pastPoints.size(); ++i) {
         Eigen::Vector3f endpoint = (anchor_pose.inverse() * pastPoints[i]->pose).col(3).head(3);
         pastGrid.updateInvalid(endpoint);
       }
-      std::cout << "update invalid took " << Stopwatch::toc() << std::endl;
+//      std::cout << "update invalid took " << Stopwatch::toc() << std::endl;
 
       // store grid in mat file.
-      saveVoxelGrid(priorGrid, output_voxel_dirname + "/" + input_dirname + "/" + outname.str());
-      saveVoxelGrid(pastGrid, output_voxel_dirname + "/" + target_dirname + "/" + outname.str());
+      saveVoxelGrid(priorGrid, output_voxel_dirname, outname.str(), "input");
+      saveVoxelGrid(pastGrid, output_voxel_dirname, outname.str(), "target");
 
-      std::cout << "Saved " << output_voxel_dirname + "/" + input_dirname + "/" + outname.str() << std::endl;
-      std::cout << "Saved " << output_voxel_dirname + "/" + target_dirname + "/" + outname.str() << std::endl;
 
     } else {
       std::cout << "skipped." << std::endl;

@@ -71,12 +71,6 @@ add_executable(voxelizer
   src/rv/Stopwatch.cpp
   src/data/misc.cpp
   src/voxelizer.cpp
-  src/widget/Mainframe.h
-  src/widget/Car.cpp
-  src/widget/Car.h
-  src/widget/CarReader.cpp
-  src/widget/CarReader.h
-  src/widget/Viewport.h
   src/widget/Mainframe.cpp
   src/widget/Viewport.cpp
   src/widget/KittiReader.cpp
@@ -97,6 +91,6 @@ add_executable(gen_data
   src/data/voxelize_utils.cpp
 )
 
-target_link_libraries(voxelizer ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} pthread Qt5::Xml Qt5::OpenGL Qt5::Widgets matio)
-target_link_libraries(gen_data ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} pthread Qt5::Xml Qt5::OpenGL Qt5::Widgets matio)
+target_link_libraries(voxelizer ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} pthread Qt5::Xml Qt5::OpenGL Qt5::Widgets)
+target_link_libraries(gen_data ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} pthread Qt5::Xml Qt5::OpenGL Qt5::Widgets)
 

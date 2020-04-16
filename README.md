@@ -2,6 +2,8 @@
 
  Tool to voxelize annotated point clouds. 
  
+ ![](assets/voxelizer.png)
+ 
 ## Dependencies
 
 * catkin
@@ -23,23 +25,6 @@ Additionally, make sure you have [catkin-tools](https://catkin-tools.readthedocs
 sudo apt install python-pip
 sudo pip install catkin_tools catkin_tools_fetch empy
 ```
-
-And Matio for reading / writing Matlab mat-files
-```
-sudo apt install p7zip-full
-
-mkdir -p ~/libs/matio && cd ~/libs/matio
-wget https://kent.dl.sourceforge.net/project/matio/matio/1.5.12/matio-1.5.12.7z
-7z x matio-1.5.12.7z
-cd matio-1.5.12
-chmod +x configure
-./configure
-make -j4
-make check
-sudo make install
-
-```
-
 
 If you do not have a catkin workspace already, create one:
 ```bash
@@ -83,7 +68,7 @@ ignore: 0,250,251,252,253,254  # label ids of labels that should be ignored when
 
 </pre>
 
-
+To generate the data by iterating over a sequence directory, call `./gen_data` in the `bin` directory.
 
 
  
@@ -98,9 +83,3 @@ point cloud folder
 ├── calib.txt             -- calibration of velodyne vs. camera. needed for projection of point cloud into camera.  
 └── poses.txt             -- file containing the poses of every scan.
 </pre>
-
- 
-
-## TODO
-
- See TODO.md.
