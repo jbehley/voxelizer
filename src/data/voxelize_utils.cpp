@@ -245,10 +245,11 @@ void saveVoxelGrid(const VoxelGrid& grid, const std::string& directory, const st
         }
 
         // Write maxLabel appropriately to file.
-        counter = counter + 1;
+        assert(counter < numElements);
         outputLabels[counter] = maxLabel;
         outputTensorOccluded[counter] = isOccluded;
         outputTensorInvalid[counter] = (uint32_t)grid.isInvalid(x, y, z);
+        counter = counter + 1;
       }
     }
   }
