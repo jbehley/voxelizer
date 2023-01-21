@@ -1,4 +1,3 @@
-#include <matio.h>
 #include <stdint.h>
 #include <fstream>
 #include <iomanip>
