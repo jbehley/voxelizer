@@ -1,6 +1,11 @@
+cmake_minimum_required(VERSION 3.16...3.25)
+
 PROJECT(voxelizer)
 
-cmake_minimum_required(VERSION 2.6)
+set(OPENGL_VERSION "430" CACHE STRING "" FORCE)
+set(ENABLE_NVIDIA_EXT On CACHE BOOL "" FORCE)
+
+include(external/glow.cmake)
 
 set(CMAKE_C_FLAGS "-Wall -O3 -g")
 set(CMAKE_CXX_FLAGS "-Wall -O3 -g")
@@ -12,18 +17,6 @@ find_package(Qt5OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(Boost REQUIRED COMPONENTS filesystem system)
 
-find_package(catkin COMPONENTS 
-     glow)
-
-if(catkin_FOUND)
-  message("Found catkin")
-  catkin_package(
-    CATKIN_DEPENDS
-      glow
-    DEPENDS
-      Boost
-  )
-endif()
 
 include_directories(${catkin_INCLUDE_DIRS} src/ ${QT5_INCLUDE_DIRS} ${GLEW_INCLUDE_DIRS} /usr/include/eigen3 /usr/local/include)
 
@@ -33,8 +26,7 @@ set(CMAKE_CXX_FLAGS "-std=c++11 -O3  -Wall ${CMAKE_CXX_FLAGS}")
 set(CMAKE_CXX_FLAGS "-UDEBUG_GL -UDEBUG -DNDEBUG -g2 ${CMAKE_CXX_FLAGS}")
 
 # since now everything resides in "bin", we have to copy some stuff.
-  
-
+set(CMAKE_BUILD_TYPE Release)
 SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
 configure_file(assets/labels.xml ${CMAKE_SOURCE_DIR}/bin/labels.xml COPYONLY)
@@ -91,6 +83,6 @@ add_executable(gen_data
   src/data/voxelize_utils.cpp
 )
 
-target_link_libraries(voxelizer ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} pthread Qt5::Xml Qt5::OpenGL Qt5::Widgets)
-target_link_libraries(gen_data ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} pthread Qt5::Xml Qt5::OpenGL Qt5::Widgets)
+target_link_libraries(voxelizer glow::glow glow::util pthread Qt5::Xml Qt5::OpenGL Qt5::Widgets)
+target_link_libraries(gen_data glow::glow glow::util pthread Qt5::Xml Qt5::OpenGL Qt5::Widgets)
 
