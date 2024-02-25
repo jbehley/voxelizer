@@ -22,7 +22,7 @@ Use the usual cmake out-of-source build process:
 mkdir build && cd build
 cmake ..
 ```
-Now the project root directory (e.g. `~/catkin_ws/src/voxelizer`) should contain a `bin` directory containing the voxelizer.
+Now the project root directory should contain a `bin` directory containing the voxelizer.
 
 ## Usage
 
